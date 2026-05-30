@@ -8,8 +8,9 @@ export default function CartModal({
   updateQty,
   confirmOrder,
 }) {
+  // 1. Aseguramos que el precio sea número en el reducer del total
   const total = cart.reduce(
-    (acc, item) => acc + item.product.price * item.qty,
+    (acc, item) => acc + Number(item.product.price) * item.qty,
     0,
   );
 
@@ -72,7 +73,10 @@ export default function CartModal({
                   </h5>
                   <span className="text-sm text-emerald-600 font-black">
                     {CONFIG.currency}
-                    {(item.product.price * item.qty).toLocaleString("es-AR")}
+                    {/* 2. Aseguramos que el subtotal del producto sea número */}
+                    {(Number(item.product.price) * item.qty).toLocaleString(
+                      "es-AR",
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl p-1 shadow-inner">
@@ -111,7 +115,8 @@ export default function CartModal({
           <button
             onClick={confirmOrder}
             disabled={cart.length === 0}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold py-4 px-6 rounded-2xl shadow-[0_10px_20px_rgba(16,185,129,0.2)] hover:shadow-[0_15px_25px_rgba(16,185,129,0.3)] flex items-center justify-center gap-3 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            /* Separamos la sombra de su color dinámico para que coincida con tu marca */
+            className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold py-4 px-6 rounded-2xl shadow-[0_10px_20px] shadow-emerald-600/20 hover:shadow-[0_15px_25px] hover:shadow-emerald-600/30 flex items-center justify-center gap-3 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Pedir por WhatsApp
           </button>

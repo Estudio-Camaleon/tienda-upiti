@@ -29,7 +29,8 @@ export default function Hero() {
       <div className="absolute inset-0 bg-black/60 z-10 transition-colors duration-500 group-hover:bg-black/50"></div>
 
       <div className="relative z-20 space-y-4 flex flex-col items-center animate-float">
-        <span className="text-xs font-bold uppercase tracking-widest text-emerald-300 bg-emerald-900/50 px-3 py-1 rounded-md border border-emerald-500/30 backdrop-blur-sm">
+        {/* Cambiamos a emerald-100 y emerald-800 que sí generamos dinámicamente */}
+        <span className="text-xs font-bold uppercase tracking-widest text-emerald-100 bg-emerald-800/50 px-3 py-1 rounded-md border border-emerald-500/30 backdrop-blur-sm">
           Envíos a todo el país
         </span>
         <h2 className="text-3xl font-extrabold tracking-tight sm:text-5xl text-white drop-shadow-lg">
@@ -42,7 +43,8 @@ export default function Hero() {
 
         <button
           onClick={handleContact}
-          className="mt-4 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white font-bold py-4 px-8 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_25px_rgba(16,185,129,0.6)] flex items-center justify-center gap-3 transition-all duration-300"
+          /* Separamos el tamaño de la sombra (shadow-[0_0_20px]) de su color dinámico (shadow-emerald-500/40) */
+          className="mt-4 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold py-4 px-8 rounded-full shadow-[0_0_20px] shadow-emerald-500/40 hover:shadow-[0_0_25px] hover:shadow-emerald-500/60 flex items-center justify-center gap-3 transition-all duration-300"
         >
           Tengo una consulta
         </button>

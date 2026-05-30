@@ -6,22 +6,21 @@ import { CONFIG } from "../data/config";
 import Hero from "../components/Hero";
 import ProductCard from "../components/ProductCard";
 import CartModal from "../components/CartModal";
-import { supabase } from "../lib/supabase"; // Importamos la conexión a tu base de datos
+import { supabase } from "../lib/supabase";
 
 export default function Home() {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true); // Nuevo estado para la carga
+  const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
 
-  // EFECTO PARA CARGAR LOS PRODUCTOS DESDE SUPABASE
   useEffect(() => {
     async function loadProducts() {
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .order("id", { ascending: true }); // Los trae ordenados por ID
+        .order("id", { ascending: true });
 
       if (error) {
         console.error("Error cargando productos:", error);
@@ -34,7 +33,6 @@ export default function Home() {
     loadProducts();
   }, []);
 
-  // Ahora las categorías y filtros usan el estado 'products' en lugar de CONFIG.products
   const categories = ["Todos", ...new Set(products.map((p) => p.category))];
   const filteredProducts =
     selectedCategory === "Todos"
@@ -96,16 +94,22 @@ export default function Home() {
   return (
     <div className="bg-gray-50 text-gray-900 font-sans antialiased selection:bg-emerald-500 selection:text-white pb-20 min-h-screen">
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 transition-all duration-300">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <h1 className="text-xl font-black tracking-tight text-emerald-600 hover:scale-105 transition-transform cursor-pointer">
-            {CONFIG.storeName}
-          </h1>
+        {/* Cambiamos max-w-6xl mx-auto por w-full px-4 sm:px-6 lg:px-8 */}
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3 hover:scale-105 transition-transform cursor-pointer">
+            {CONFIG.logoUrl && (
+              <img
+                src={CONFIG.logoUrl}
+                alt={`Logo de ${CONFIG.storeName}`}
+                className="h-10 w-auto object-contain"
+              />
+            )}
+            <h1 className="text-xl font-black tracking-tight text-emerald-600 hidden sm:block">
+              {CONFIG.storeName}
+            </h1>
+          </div>
 
           <div className="flex items-center gap-4">
-            <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full hidden sm:flex items-center gap-1 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Online
-            </span>
             <button
               onClick={() => setIsCartOpen(true)}
               className="relative p-2 bg-gray-100 hover:bg-emerald-100 hover:text-emerald-700 rounded-full transition-all duration-300 active:scale-90"
@@ -133,10 +137,10 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 space-y-8">
+      {/* Cambiamos max-w-6xl mx-auto por w-full px-4 sm:px-6 lg:px-8 */}
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-8">
         <Hero />
 
-        {/* Muestra un estado de carga mientras trae los datos de la nube */}
         {loading ? (
           <div className="text-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
@@ -184,7 +188,8 @@ export default function Home() {
                   No hay productos en esta categoría.
                 </p>
               ) : (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                /* Añadí un breakpoint adicional "2xl:grid-cols-5" para que aproveche el espacio si la pantalla es ultra ancha */
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                   {filteredProducts.map((product, index) => (
                     <ProductCard
                       key={product.id}
