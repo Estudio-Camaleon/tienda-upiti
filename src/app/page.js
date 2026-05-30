@@ -1,32 +1,48 @@
 // Archivo: src/app/page.js
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CONFIG } from "../data/config";
 import Hero from "../components/Hero";
 import ProductCard from "../components/ProductCard";
 import CartModal from "../components/CartModal";
+import { supabase } from "../lib/supabase"; // Importamos la conexión a tu base de datos
 
 export default function Home() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true); // Nuevo estado para la carga
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
 
-  // Obtener categorías únicas
-  const categories = [
-    "Todos",
-    ...new Set(CONFIG.products.map((p) => p.category)),
-  ];
+  // EFECTO PARA CARGAR LOS PRODUCTOS DESDE SUPABASE
+  useEffect(() => {
+    async function loadProducts() {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("id", { ascending: true }); // Los trae ordenados por ID
 
-  // Filtrar productos
+      if (error) {
+        console.error("Error cargando productos:", error);
+      } else {
+        setProducts(data || []);
+      }
+      setLoading(false);
+    }
+
+    loadProducts();
+  }, []);
+
+  // Ahora las categorías y filtros usan el estado 'products' en lugar de CONFIG.products
+  const categories = ["Todos", ...new Set(products.map((p) => p.category))];
   const filteredProducts =
     selectedCategory === "Todos"
-      ? CONFIG.products
-      : CONFIG.products.filter((p) => p.category === selectedCategory);
+      ? products
+      : products.filter((p) => p.category === selectedCategory);
 
   const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  // Funciones del Carrito
   const addToCart = (product) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find(
@@ -59,7 +75,6 @@ export default function Home() {
 
   const confirmOrder = () => {
     if (cart.length === 0) return;
-
     let total = 0;
     let message = `¡Hola! Me gustaría confirmar mi pedido:\n\n`;
 
@@ -121,54 +136,65 @@ export default function Home() {
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-8">
         <Hero />
 
-        {/* Filtros */}
-        <section className="space-y-3">
-          <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider flex items-center gap-2">
-            Filtros Rápidos
-          </h3>
-          <div className="flex gap-2 overflow-x-auto pb-4 pt-1 no-scrollbar snap-x snap-mandatory">
-            {categories.map((cat, idx) => (
-              <button
-                key={idx}
-                onClick={() => setSelectedCategory(cat)}
-                className={`snap-center shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 transform active:scale-95 hover:-translate-y-1 ${
-                  selectedCategory === cat
-                    ? "bg-emerald-600 text-white shadow-[0_4px_10px_rgba(16,185,129,0.3)] border-transparent"
-                    : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Galería */}
-        <section className="space-y-3">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">
-              Nuestra Galería
-            </h3>
-            <span className="text-xs font-semibold bg-gray-200 text-gray-600 px-2 py-1 rounded-md">
-              {filteredProducts.length}
-            </span>
-          </div>
-
-          {filteredProducts.length === 0 ? (
-            <p className="text-center py-12 text-gray-400 text-sm animate-fade-in-up">
-              No hay productos en esta categoría.
+        {/* Muestra un estado de carga mientras trae los datos de la nube */}
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
+            <p className="text-gray-500 mt-4 font-medium">
+              Cargando catálogo...
             </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredProducts.map((product, index) => (
-                // Actualizamos ProductCard para que reciba la función addToCart real
-                <div key={product.id} onClick={() => addToCart(product)}>
-                  <ProductCard product={product} index={index} />
+          </div>
+        ) : (
+          <>
+            {/* Filtros */}
+            <section className="space-y-3">
+              <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider flex items-center gap-2">
+                Filtros Rápidos
+              </h3>
+              <div className="flex gap-2 overflow-x-auto pb-4 pt-1 no-scrollbar snap-x snap-mandatory">
+                {categories.map((cat, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`snap-center shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 transform active:scale-95 hover:-translate-y-1 ${
+                      selectedCategory === cat
+                        ? "bg-emerald-600 text-white shadow-[0_4px_10px_rgba(16,185,129,0.3)] border-transparent"
+                        : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Galería */}
+            <section className="space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">
+                  Nuestra Galería
+                </h3>
+                <span className="text-xs font-semibold bg-gray-200 text-gray-600 px-2 py-1 rounded-md">
+                  {filteredProducts.length}
+                </span>
+              </div>
+
+              {filteredProducts.length === 0 ? (
+                <p className="text-center py-12 text-gray-400 text-sm animate-fade-in-up">
+                  No hay productos en esta categoría.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {filteredProducts.map((product, index) => (
+                    <div key={product.id} onClick={() => addToCart(product)}>
+                      <ProductCard product={product} index={index} />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+              )}
+            </section>
+          </>
+        )}
       </main>
 
       <CartModal
