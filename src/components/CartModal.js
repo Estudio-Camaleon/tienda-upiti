@@ -1,14 +1,11 @@
 // Archivo: src/components/CartModal.js
+"use client";
 import { CONFIG } from "../data/config";
+import { useCart } from "../context/CartContext";
 
-export default function CartModal({
-  isOpen,
-  onClose,
-  cart,
-  updateQty,
-  confirmOrder,
-}) {
-  // 1. Aseguramos que el precio sea número en el reducer del total
+export default function CartModal() {
+  const { cart, isCartOpen, setIsCartOpen, updateQty, confirmOrder } =
+    useCart();
   const total = cart.reduce(
     (acc, item) => acc + Number(item.product.price) * item.qty,
     0,
@@ -16,21 +13,20 @@ export default function CartModal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-end justify-center transition-all duration-300 ${isOpen ? "bg-gray-900/40 backdrop-blur-sm opacity-100" : "opacity-0 pointer-events-none"}`}
-      onClick={onClose}
+      className={`fixed inset-0 z-50 flex items-end justify-center transition-all duration-300 ${isCartOpen ? "bg-gray-900/40 backdrop-blur-sm opacity-100" : "opacity-0 pointer-events-none"}`}
+      onClick={() => setIsCartOpen(false)}
     >
       <div
-        className={`bg-white w-full max-w-lg rounded-t-3xl p-6 space-y-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col max-h-[90vh] transition-transform duration-400 cubic-bezier(0.16, 1, 0.3, 1) ${isOpen ? "translate-y-0" : "translate-y-full"}`}
-        onClick={(e) => e.stopPropagation()} // Evita que al hacer clic dentro de la tarjeta se cierre el modal
+        className={`bg-white w-full max-w-lg rounded-t-3xl p-6 space-y-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col max-h-[90vh] transition-transform duration-400 cubic-bezier(0.16, 1, 0.3, 1) ${isCartOpen ? "translate-y-0" : "translate-y-full"}`}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto -mt-2 mb-2 shrink-0"></div>
-
         <div className="flex justify-between items-center shrink-0 border-b border-gray-100 pb-4">
           <h4 className="text-xl font-black text-gray-900 flex items-center gap-2">
             Tu Carrito <span className="animate-bounce">🛒</span>
           </h4>
           <button
-            onClick={onClose}
+            onClick={() => setIsCartOpen(false)}
             className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 bg-gray-100 rounded-full text-sm font-bold w-8 h-8 flex items-center justify-center transition-colors"
           >
             ✕
@@ -44,15 +40,12 @@ export default function CartModal({
               <p className="text-base font-medium text-gray-500">
                 Tu carrito está vacío
               </p>
-              <p className="text-xs mt-1">
-                ¡Agrega algo increíble de nuestra galería!
-              </p>
             </div>
           ) : (
             cart.map((item) => (
               <div
                 key={item.product.id}
-                className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300"
+                className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm"
               >
                 <img
                   src={
@@ -61,11 +54,6 @@ export default function CartModal({
                   }
                   className="w-16 h-16 object-cover rounded-xl border border-gray-100"
                   alt={item.product.name}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src =
-                      "https://placehold.co/150x150/eeeeee/999999?text=Sin+Imagen";
-                  }}
                 />
                 <div className="flex-1">
                   <h5 className="text-sm font-bold text-gray-900 leading-tight line-clamp-1">
@@ -73,7 +61,6 @@ export default function CartModal({
                   </h5>
                   <span className="text-sm text-emerald-600 font-black">
                     {CONFIG.currency}
-                    {/* 2. Aseguramos que el subtotal del producto sea número */}
                     {(Number(item.product.price) * item.qty).toLocaleString(
                       "es-AR",
                     )}
@@ -82,7 +69,7 @@ export default function CartModal({
                 <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl p-1 shadow-inner">
                   <button
                     onClick={() => updateQty(item.product.id, -1)}
-                    className="w-8 h-8 rounded-lg bg-white hover:bg-gray-100 font-bold text-gray-600 shadow-sm transition-colors active:scale-90"
+                    className="w-8 h-8 rounded-lg bg-white font-bold text-gray-600 shadow-sm"
                   >
                     -
                   </button>
@@ -91,7 +78,7 @@ export default function CartModal({
                   </span>
                   <button
                     onClick={() => updateQty(item.product.id, 1)}
-                    className="w-8 h-8 rounded-lg bg-white hover:bg-emerald-50 hover:text-emerald-600 font-bold text-gray-600 shadow-sm transition-colors active:scale-90"
+                    className="w-8 h-8 rounded-lg bg-white font-bold text-gray-600 shadow-sm"
                   >
                     +
                   </button>
@@ -111,12 +98,10 @@ export default function CartModal({
               {total.toLocaleString("es-AR")}
             </span>
           </div>
-
           <button
             onClick={confirmOrder}
             disabled={cart.length === 0}
-            /* Separamos la sombra de su color dinámico para que coincida con tu marca */
-            className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold py-4 px-6 rounded-2xl shadow-[0_10px_20px] shadow-emerald-600/20 hover:shadow-[0_15px_25px] hover:shadow-emerald-600/30 flex items-center justify-center gap-3 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-2xl shadow-[0_10px_20px] shadow-emerald-600/20 disabled:opacity-50 flex items-center justify-center"
           >
             Pedir por WhatsApp
           </button>
