@@ -7,7 +7,13 @@ import { CONFIG } from "../data/config";
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("tienda_cart");
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   // 1. Cargar el carrito guardado al abrir la página

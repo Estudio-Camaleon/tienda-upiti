@@ -32,7 +32,7 @@ export default function Register() {
     let avatarUrl = null;
     if (data.avatar && data.avatar[0]) {
       const file = data.avatar[0];
-      const fileName = `${auth.user.id}/${Date.now()}`;
+      const fileName = `${auth.user.id}/${new Date().getTime()}`;
       await supabase.storage.from("avatars").upload(fileName, file);
       const { data: urlData } = supabase.storage
         .from("avatars")

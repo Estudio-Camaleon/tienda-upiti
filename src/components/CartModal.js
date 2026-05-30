@@ -2,6 +2,7 @@
 "use client";
 import { CONFIG } from "../data/config";
 import { useCart } from "../context/CartContext";
+import Image from "next/image";
 
 export default function CartModal() {
   const { cart, isCartOpen, setIsCartOpen, updateQty, confirmOrder } =
@@ -47,13 +48,15 @@ export default function CartModal() {
                 key={item.product.id}
                 className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm"
               >
-                <img
+                <Image
                   src={
                     item.product.image ||
                     "https://placehold.co/150x150/eeeeee/999999?text=Sin+Imagen"
                   }
-                  className="w-16 h-16 object-cover rounded-xl border border-gray-100"
                   alt={item.product.name}
+                  width={600}
+                  height={600}
+                  className="w-16 h-16 object-cover rounded-xl border border-gray-100"
                 />
                 <div className="flex-1">
                   <h5 className="text-sm font-bold text-gray-900 leading-tight line-clamp-1">
