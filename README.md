@@ -1,5 +1,3 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
-
 ## Getting Started
 
 First, run the development server:
@@ -16,21 +14,18 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## npm run dev:mobile:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Este es un salvavidas. Al agregar -H 0.0.0.0, le indicas a Next.js que exponga tu servidor local a tu red Wi-Fi. Esto te permite tomar tu celular, poner la IP de tu computadora (por ejemplo, 192.168.1.5:3000) y probar cómo se ve y funciona el carrito táctilmente antes de subirlo a internet.
 
-## Learn More
+## npm run lint:fix:
 
-To learn more about Next.js, take a look at the following resources:
+Ejecuta el analizador de código (ESLint) pero con la orden de arreglar automáticamente todos los problemas menores que encuentre, como variables declaradas que no usaste o errores de sintaxis.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## npm run format:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Revisa todos tus archivos dentro de la carpeta src/ y los formatea instantáneamente (arregla la indentación, los espacios, las comillas dobles/simples, etc.).
 
-## Deploy on Vercel
+## npm run clean:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+A veces Next.js guarda en caché archivos antiguos en la carpeta oculta .next. Si alguna vez notas que un cambio no se refleja en pantalla o algo se "traba", este script borra ese caché para forzar una compilación completamente limpia la próxima vez que corras npm run dev. (Nota: si usas Windows, este comando puede requerir usar Powershell o instalar la librería rimraf para que funcione correctamente).
