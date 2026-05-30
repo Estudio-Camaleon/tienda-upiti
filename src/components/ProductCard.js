@@ -1,7 +1,7 @@
 // Archivo: src/components/ProductCard.js
 import { CONFIG } from "../data/config";
 
-export default function ProductCard({ product, index }) {
+export default function ProductCard({ product, index, onAdd }) {
   return (
     <div
       className="product-card animate-fade-in-up opacity-0 bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col group"
@@ -48,10 +48,11 @@ export default function ProductCard({ product, index }) {
         <div className="pt-2 flex items-center justify-between gap-2 border-t border-gray-50">
           <span className="text-xl font-black text-gray-900">
             {CONFIG.currency}
-            {product.price.toLocaleString("es-AR")}
+            {/* Aseguramos que sea un número antes de formatearlo */}
+            {Number(product.price).toLocaleString("es-AR")}
           </span>
           <button
-            onClick={() => console.log(`Añadir al carrito: ${product.name}`)}
+            onClick={onAdd} /* Ahora sí llama a la función real */
             className="bg-gray-100 hover:bg-emerald-500 hover:text-white text-gray-800 font-bold text-xs py-2.5 px-4 rounded-xl transition-all duration-300 active:scale-[0.90] flex items-center gap-1 shadow-sm"
           >
             Añadir 🛒
