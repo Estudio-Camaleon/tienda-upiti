@@ -4,6 +4,8 @@ import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { profileSchema } from "../../../lib/schemas";
 import { useToast } from "../../../context/ToastContext";
 
 const countries = [
@@ -34,7 +36,115 @@ const countries = [
   { code: "49", name: "Alemania" },
   { code: "44", name: "Reino Unido" },
   { code: "351", name: "Portugal" },
+  { code: "86", name: "China" },
+  { code: "81", name: "Japón" },
+  { code: "82", name: "Corea del Sur" },
+  { code: "91", name: "India" },
+  { code: "61", name: "Australia" },
+  { code: "64", name: "Nueva Zelanda" },
+  { code: "27", name: "Sudáfrica" },
+  { code: "20", name: "Egipto" },
+  { code: "212", name: "Marruecos" },
+  { code: "234", name: "Nigeria" },
+  { code: "254", name: "Kenia" },
+  { code: "233", name: "Ghana" },
+  { code: "221", name: "Senegal" },
+  { code: "216", name: "Túnez" },
+  { code: "213", name: "Argelia" },
+  { code: "972", name: "Israel" },
+  { code: "90", name: "Turquía" },
+  { code: "7", name: "Rusia" },
+  { code: "380", name: "Ucrania" },
+  { code: "48", name: "Polonia" },
+  { code: "40", name: "Rumania" },
+  { code: "36", name: "Hungría" },
+  { code: "30", name: "Grecia" },
+  { code: "31", name: "Países Bajos" },
+  { code: "32", name: "Bélgica" },
+  { code: "45", name: "Dinamarca" },
+  { code: "46", name: "Suecia" },
+  { code: "47", name: "Noruega" },
+  { code: "358", name: "Finlandia" },
+  { code: "354", name: "Islandia" },
+  { code: "41", name: "Suiza" },
+  { code: "43", name: "Austria" },
+  { code: "420", name: "República Checa" },
+  { code: "421", name: "Eslovaquia" },
+  { code: "386", name: "Eslovenia" },
+  { code: "385", name: "Croacia" },
+  { code: "381", name: "Serbia" },
+  { code: "359", name: "Bulgaria" },
+  { code: "60", name: "Malasia" },
+  { code: "66", name: "Tailandia" },
+  { code: "84", name: "Vietnam" },
+  { code: "63", name: "Filipinas" },
+  { code: "62", name: "Indonesia" },
+  { code: "65", name: "Singapur" },
+  { code: "92", name: "Pakistán" },
+  { code: "880", name: "Bangladesh" },
+  { code: "94", name: "Sri Lanka" },
+  { code: "977", name: "Nepal" },
+  { code: "966", name: "Arabia Saudita" },
+  { code: "971", name: "Emiratos Árabes" },
+  { code: "974", name: "Qatar" },
+  { code: "968", name: "Omán" },
+  { code: "965", name: "Kuwait" },
+  { code: "973", name: "Baréin" },
+  { code: "962", name: "Jordania" },
+  { code: "961", name: "Líbano" },
 ];
+
+const provinces = [
+  "Buenos Aires",
+  "Catamarca",
+  "Chaco",
+  "Chubut",
+  "Córdoba",
+  "Corrientes",
+  "Entre Ríos",
+  "Formosa",
+  "Jujuy",
+  "La Pampa",
+  "La Rioja",
+  "Mendoza",
+  "Misiones",
+  "Neuquén",
+  "Río Negro",
+  "Salta",
+  "San Juan",
+  "San Luis",
+  "Santa Cruz",
+  "Santa Fe",
+  "Santiago del Estero",
+  "Tierra del Fuego",
+  "Tucumán",
+];
+
+function LoadingSkeleton() {
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-8 animate-pulse">
+      <div className="h-10 w-48 bg-gray-200 rounded-lg mb-8" />
+      <div className="bg-white p-8 rounded-3xl border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="md:col-span-2 flex items-center gap-6 mb-4">
+          <div className="w-24 h-24 rounded-full bg-gray-200" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-40 bg-gray-200 rounded" />
+            <div className="h-10 w-full bg-gray-100 rounded-xl" />
+          </div>
+        </div>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className={i >= 5 ? "md:col-span-2" : ""}>
+            <div className="h-4 w-24 bg-gray-200 rounded mb-1.5" />
+            <div className="h-12 w-full bg-gray-100 rounded-xl" />
+          </div>
+        ))}
+        <div className="md:col-span-2 mt-4">
+          <div className="h-14 w-full bg-gray-200 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function EditProfile() {
   const { addToast } = useToast();
@@ -45,7 +155,12 @@ export default function EditProfile() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [currentAvatar, setCurrentAvatar] = useState("");
 
-  const { register, handleSubmit, reset } = useForm();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({ resolver: zodResolver(profileSchema) });
 
   const {
     register: registerDelete,
@@ -54,7 +169,6 @@ export default function EditProfile() {
   } = useForm();
 
   const [selectedReason, setSelectedReason] = useState("");
-
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -73,11 +187,20 @@ export default function EditProfile() {
         .single();
       if (data) {
         const num = data.whatsapp_number || "";
+        const match = num.match(/^(\d{1,4})(\d{2,4})(\d{6,8})$/);
         reset({
-          ...data,
-          whatsapp_region: num.slice(0, 2) || "",
-          whatsapp_area: num.slice(2, 5) || "",
-          whatsapp_number_local: num.slice(5) || "",
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          company_name: data.company_name || "",
+          province: data.province || "",
+          city: data.city || "",
+          address: data.address || "",
+          niche: data.niche || "",
+          social_links: data.social_links || "",
+          birthdate: data.birthdate || "",
+          whatsapp_region: match?.[1] || num.slice(0, 2) || "",
+          whatsapp_area: match?.[2] || num.slice(2, 5) || "",
+          whatsapp_number_local: match?.[3] || num.slice(5) || "",
         });
         setCurrentAvatar(data.avatar_url);
       }
@@ -97,7 +220,9 @@ export default function EditProfile() {
         .from("avatars")
         .upload(fileName, avatarFile, { upsert: true });
 
-      if (!uploadError) {
+      if (uploadError) {
+        addToast("Error al subir la imagen: " + uploadError.message, "error");
+      } else {
         const { data } = supabase.storage
           .from("avatars")
           .getPublicUrl(fileName);
@@ -107,14 +232,18 @@ export default function EditProfile() {
 
     const whatsapp_number = `${formData.whatsapp_region}${formData.whatsapp_area}${formData.whatsapp_number_local}`;
 
-    delete formData.whatsapp_region;
-    delete formData.whatsapp_area;
-    delete formData.whatsapp_number_local;
-
     const { error } = await supabase
       .from("profiles")
       .update({
-        ...formData,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        company_name: formData.company_name,
+        province: formData.province,
+        city: formData.city,
+        address: formData.address || null,
+        niche: formData.niche || null,
+        social_links: formData.social_links || null,
+        birthdate: formData.birthdate || null,
         whatsapp_number,
         avatar_url: newAvatarUrl,
       })
@@ -147,19 +276,21 @@ export default function EditProfile() {
     } else {
       await supabase.auth.signOut();
       addToast(
-        "Tu cuenta ha sido eliminada. ¡Esperamos verte pronto!",
+        "Tu cuenta ha sido eliminada. Esperamos verte pronto.",
         "success",
       );
       router.push("/");
     }
   };
 
-  if (loading)
-    return (
-      <div className="text-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
-      </div>
-    );
+  if (loading) return <LoadingSkeleton />;
+
+  const inputClass = (field) =>
+    `w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${
+      errors[field]
+        ? "border-red-400 focus:ring-red-500/20"
+        : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+    }`;
 
   return (
     <motion.main
@@ -174,7 +305,7 @@ export default function EditProfile() {
           onClick={() => router.push("/dashboard")}
           className="text-sm font-bold text-gray-500 hover:text-emerald-600 transition-colors"
         >
-          ← Volver al Panel
+          Volver al Panel
         </button>
       </div>
 
@@ -196,90 +327,181 @@ export default function EditProfile() {
               type="file"
               accept="image/*"
               onChange={(e) => setAvatarFile(e.target.files[0])}
-              className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+              className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
             />
           </div>
         </div>
 
-        {}
-        <input
-          type="text"
-          {...register("company_name", { required: true })}
-          placeholder="Nombre del Local/Empresa"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 md:col-span-2"
-        />
-        <input
-          type="text"
-          {...register("first_name", { required: true })}
-          placeholder="Nombre"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500"
-        />
-        <input
-          type="text"
-          {...register("last_name", { required: true })}
-          placeholder="Apellido"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500"
-        />
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+            Nombre del emprendimiento
+          </label>
+          <input
+            type="text"
+            {...register("company_name")}
+            placeholder="Ej: Dulces Artesanales"
+            className={inputClass("company_name")}
+          />
+          {errors.company_name && (
+            <p className="text-red-500 text-xs mt-1 font-medium">
+              {errors.company_name.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+            Nombre
+          </label>
+          <input
+            type="text"
+            {...register("first_name")}
+            placeholder="Tu nombre"
+            className={inputClass("first_name")}
+          />
+          {errors.first_name && (
+            <p className="text-red-500 text-xs mt-1 font-medium">
+              {errors.first_name.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+            Apellido
+          </label>
+          <input
+            type="text"
+            {...register("last_name")}
+            placeholder="Tu apellido"
+            className={inputClass("last_name")}
+          />
+          {errors.last_name && (
+            <p className="text-red-500 text-xs mt-1 font-medium">
+              {errors.last_name.message}
+            </p>
+          )}
+        </div>
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-gray-700 mb-2">
             WhatsApp
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
             <select
-              {...register("whatsapp_region", { required: true })}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm bg-white col-span-1"
+              {...register("whatsapp_region")}
+              className={`w-full px-4 py-3 rounded-xl border outline-none text-sm bg-white transition-shadow focus:ring-2 col-span-1 ${errors.whatsapp_region ? "border-red-400 focus:ring-red-500/20" : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"}`}
             >
               <option value="">+54</option>
               {countries.map((c) => (
                 <option key={c.code} value={c.code}>
-                  +{c.code}
+                  +{c.code} — {c.name}
                 </option>
               ))}
             </select>
             <input
               type="text"
-              {...register("whatsapp_area", { required: true })}
+              {...register("whatsapp_area")}
               placeholder="381"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm"
+              className={`w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${errors.whatsapp_area ? "border-red-400 focus:ring-red-500/20" : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"}`}
             />
             <input
               type="text"
-              {...register("whatsapp_number_local", { required: true })}
+              {...register("whatsapp_number_local")}
               placeholder="9999999"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm col-span-2 sm:col-span-1"
+              className={`w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 col-span-2 sm:col-span-1 ${errors.whatsapp_number_local ? "border-red-400 focus:ring-red-500/20" : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"}`}
             />
           </div>
+          {(errors.whatsapp_region ||
+            errors.whatsapp_area ||
+            errors.whatsapp_number_local) && (
+            <p className="text-red-500 text-xs mt-1 font-medium">
+              Completá todos los campos de WhatsApp.
+            </p>
+          )}
         </div>
-        <input
-          type="text"
-          {...register("niche", { required: true })}
-          placeholder="Nicho (ej. Ropa)"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500"
-        />
-        <input
-          type="text"
-          {...register("province", { required: true })}
-          placeholder="Provincia"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500"
-        />
-        <input
-          type="text"
-          {...register("city", { required: true })}
-          placeholder="Ciudad"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500"
-        />
-        <input
-          type="text"
-          {...register("address")}
-          placeholder="Dirección"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 md:col-span-2"
-        />
-        <input
-          type="text"
-          {...register("social_links")}
-          placeholder="Links de Redes (Instagram, Web)"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 md:col-span-2"
-        />
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+            Nicho
+          </label>
+          <input
+            type="text"
+            {...register("niche")}
+            placeholder="Ej: Ropa, Accesorios, Deco"
+            className={inputClass("niche")}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+            Provincia
+          </label>
+          <select
+            {...register("province")}
+            className={`w-full px-4 py-3 rounded-xl border outline-none text-sm bg-white transition-shadow focus:ring-2 ${errors.province ? "border-red-400 focus:ring-red-500/20" : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"}`}
+          >
+            <option value="">Seleccioná una provincia</option>
+            {provinces.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+          {errors.province && (
+            <p className="text-red-500 text-xs mt-1 font-medium">
+              {errors.province.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+            Ciudad
+          </label>
+          <input
+            type="text"
+            {...register("city")}
+            placeholder="Ej: Crdoba Capital"
+            className={inputClass("city")}
+          />
+          {errors.city && (
+            <p className="text-red-500 text-xs mt-1 font-medium">
+              {errors.city.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+            Fecha de nacimiento
+          </label>
+          <input
+            type="date"
+            {...register("birthdate")}
+            className={inputClass("birthdate")}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+            Dirección
+          </label>
+          <input
+            type="text"
+            {...register("address")}
+            placeholder="Opcional"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+            Red social o web
+          </label>
+          <input
+            type="url"
+            {...register("social_links")}
+            placeholder="https://instagram.com/tutienda"
+            className={inputClass("social_links")}
+          />
+          {errors.social_links && (
+            <p className="text-red-500 text-xs mt-1 font-medium">
+              {errors.social_links.message}
+            </p>
+          )}
+        </div>
 
         <div className="md:col-span-2 mt-4">
           <motion.button
@@ -294,7 +516,6 @@ export default function EditProfile() {
         </div>
       </form>
 
-      {}
       <div className="mt-12 bg-red-50 p-6 rounded-3xl border border-red-100 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <h4 className="text-red-800 font-bold text-lg">Zona de Peligro</h4>
@@ -316,7 +537,6 @@ export default function EditProfile() {
         </motion.button>
       </div>
 
-      {}
       <AnimatePresence>
         {showDeleteModal && (
           <motion.div
@@ -332,11 +552,11 @@ export default function EditProfile() {
               className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl"
             >
               <h3 className="text-2xl font-black text-gray-900 mb-2">
-                ¿Te vas tan pronto? 😢
+                ¿Te vas tan pronto?
               </h3>
               <p className="text-gray-500 mb-6 text-sm">
                 Esta acción no se puede deshacer. ¿Podrías contarnos por qué
-                decides eliminar tu cuenta?
+                decidiste eliminar tu cuenta?
               </p>
 
               <form onSubmit={handleSubmitDelete(handleDeleteAccount)}>
@@ -368,7 +588,6 @@ export default function EditProfile() {
                   ))}
                 </div>
 
-                {}
                 <AnimatePresence>
                   {selectedReason === "Otro motivo" && (
                     <motion.div
@@ -381,7 +600,7 @@ export default function EditProfile() {
                         {...registerDelete("other_description", {
                           required: true,
                         })}
-                        placeholder="Cuéntanos brevemente tu motivo..."
+                        placeholder="Contanos brevemente tu motivo..."
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none text-sm h-24 resize-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 mt-2"
                       />
                     </motion.div>
