@@ -1,17 +1,15 @@
-// Archivo: src/components/Header.js
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { CONFIG } from "../data/config";
-import { useCart } from "../context/CartContext";
+import { useStoreConfig } from "../context/StoreConfigContext";
 import { supabase } from "../lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Header() {
-  const { cart, setIsCartOpen } = useCart();
-  const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+  const { logoUrl } = useStoreConfig();
   const [user, setUser] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Escuchamos si hay un usuario en sesión
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
@@ -28,6 +26,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setMenuOpen(false);
   };
 
   return (
@@ -36,58 +35,22 @@ export default function Header() {
         <Link
           href="/"
           className="flex items-center gap-3 hover:scale-105 transition-transform cursor-pointer"
+          onClick={() => setMenuOpen(false)}
         >
-          {CONFIG.logoUrl && (
+          {logoUrl && (
             <img
-              src={CONFIG.logoUrl}
+              src={logoUrl}
               alt="Logo"
               className="h-10 w-auto object-contain"
             />
           )}
-          <h1 className="text-xl font-black tracking-tight text-emerald-600 hidden sm:block">
-            {CONFIG.storeName}
-          </h1>
         </Link>
 
         <div className="flex items-center gap-4">
-          {/* Navegación de Usuario */}
-          {user ? (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleLogout}
-                className="text-xs font-bold text-gray-500 hover:text-red-500 transition-colors hidden sm:block"
-              >
-                Cerrar Sesión
-              </button>
-              {/* Botón temporal, en la Fase 3 lo conectaremos al Panel Real */}
-              <Link
-                href="/dashboard"
-                className="bg-gray-900 text-white px-4 py-2 rounded-full text-xs font-bold shadow-sm hover:bg-gray-800 transition-colors"
-              >
-                Mi Panel
-              </Link>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className="text-xs font-bold text-gray-600 hover:text-emerald-600 transition-colors"
-              >
-                Ingresar
-              </Link>
-              <Link
-                href="/register"
-                className="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full text-xs font-bold hover:bg-emerald-200 transition-colors hidden sm:block"
-              >
-                Vender
-              </Link>
-            </div>
-          )}
-
-          {/* Botón del Carrito */}
           <button
-            onClick={() => setIsCartOpen(true)}
-            className="relative p-2 bg-gray-100 hover:bg-emerald-100 hover:text-emerald-700 rounded-full transition-all duration-300 active:scale-90"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="sm:hidden p-2.5 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
           >
             <svg
               className="w-6 h-6 text-gray-700"
@@ -95,21 +58,107 @@ export default function Header() {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-              ></path>
+              {menuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
             </svg>
-            {totalItems > 0 && (
-              <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md animate-pop">
-                {totalItems}
-              </span>
-            )}
           </button>
+
+          <nav className="hidden sm:flex items-center gap-3">
+            {user ? (
+              <>
+                <button
+                  onClick={handleLogout}
+                  className="text-xs font-bold text-gray-500 hover:text-red-500 transition-colors"
+                >
+                  Cerrar sesión
+                </button>
+                <Link
+                  href="/dashboard"
+                  className="bg-gray-900 text-white px-4 py-2 rounded-full text-xs font-bold shadow-sm hover:bg-gray-800 transition-colors"
+                >
+                  Mi Panel
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-xs font-bold text-gray-600 hover:text-emerald-600 transition-colors"
+                >
+                  Ingresar
+                </Link>
+                <Link
+                  href="/register"
+                  className="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full text-xs font-bold hover:bg-emerald-200 transition-colors"
+                >
+                  Vender
+                </Link>
+              </>
+            )}
+          </nav>
         </div>
       </div>
+
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="sm:hidden overflow-hidden border-t border-gray-100 bg-white/95 backdrop-blur-md"
+          >
+            <div className="px-4 py-4 space-y-2">
+              {user ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMenuOpen(false)}
+                    className="block w-full text-left px-4 py-4 rounded-xl font-bold text-sm text-white bg-gray-900 hover:bg-gray-800 transition-colors min-h-[48px] flex items-center"
+                  >
+                    Mi Panel
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-4 rounded-xl font-bold text-sm text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors min-h-[48px]"
+                  >
+                    Cerrar sesión
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="block w-full text-left px-4 py-4 rounded-xl font-bold text-sm text-gray-700 hover:bg-gray-100 transition-colors min-h-[48px] flex items-center"
+                  >
+                    Ingresar
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setMenuOpen(false)}
+                    className="block w-full text-left px-4 py-4 rounded-xl font-bold text-sm text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors min-h-[48px] flex items-center"
+                  >
+                    Vender
+                  </Link>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

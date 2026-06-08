@@ -1,12 +1,43 @@
-// Archivo: src/app/dashboard/perfil/page.js
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "../../../context/ToastContext";
+
+const countries = [
+  { code: "54", name: "Argentina" },
+  { code: "591", name: "Bolivia" },
+  { code: "55", name: "Brasil" },
+  { code: "56", name: "Chile" },
+  { code: "57", name: "Colombia" },
+  { code: "506", name: "Costa Rica" },
+  { code: "53", name: "Cuba" },
+  { code: "1809", name: "República Dominicana" },
+  { code: "593", name: "Ecuador" },
+  { code: "503", name: "El Salvador" },
+  { code: "502", name: "Guatemala" },
+  { code: "509", name: "Haití" },
+  { code: "504", name: "Honduras" },
+  { code: "52", name: "México" },
+  { code: "505", name: "Nicaragua" },
+  { code: "507", name: "Panamá" },
+  { code: "595", name: "Paraguay" },
+  { code: "51", name: "Perú" },
+  { code: "1", name: "Estados Unidos / Canadá" },
+  { code: "598", name: "Uruguay" },
+  { code: "58", name: "Venezuela" },
+  { code: "34", name: "España" },
+  { code: "39", name: "Italia" },
+  { code: "33", name: "Francia" },
+  { code: "49", name: "Alemania" },
+  { code: "44", name: "Reino Unido" },
+  { code: "351", name: "Portugal" },
+];
 
 export default function EditProfile() {
+  const { addToast } = useToast();
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,19 +45,15 @@ export default function EditProfile() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [currentAvatar, setCurrentAvatar] = useState("");
 
-  // 1. Inicializamos React Hook Form para el perfil
   const { register, handleSubmit, reset } = useForm();
 
-  // 2. Inicializamos React Hook Form exclusivo para el modal de borrado
   const {
     register: registerDelete,
     handleSubmit: handleSubmitDelete,
-    watch,
     reset: resetDelete,
   } = useForm();
 
-  // Observamos en tiempo real qué opción elige el usuario en el modal
-  const selectedReason = watch("delete_reason");
+  const [selectedReason, setSelectedReason] = useState("");
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -45,8 +72,13 @@ export default function EditProfile() {
         .eq("id", session.user.id)
         .single();
       if (data) {
-        // Con 'reset', React Hook Form rellena automáticamente todos los inputs
-        reset(data);
+        const num = data.whatsapp_number || "";
+        reset({
+          ...data,
+          whatsapp_region: num.slice(0, 2) || "",
+          whatsapp_area: num.slice(2, 5) || "",
+          whatsapp_number_local: num.slice(5) || "",
+        });
         setCurrentAvatar(data.avatar_url);
       }
       setLoading(false);
@@ -54,17 +86,16 @@ export default function EditProfile() {
     loadProfile();
   }, [router, reset]);
 
-  // --- GUARDAR PERFIL ---
   const onSubmitProfile = async (formData) => {
     setSaving(true);
     let newAvatarUrl = currentAvatar;
 
     if (avatarFile) {
       const fileExt = avatarFile.name.split(".").pop();
-      const fileName = `${user.id}-${crypto.randomUUID()}.${fileExt}`;
+      const fileName = `${user.id}/avatar.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(fileName, avatarFile);
+        .upload(fileName, avatarFile, { upsert: true });
 
       if (!uploadError) {
         const { data } = supabase.storage
@@ -74,28 +105,34 @@ export default function EditProfile() {
       }
     }
 
+    const whatsapp_number = `${formData.whatsapp_region}${formData.whatsapp_area}${formData.whatsapp_number_local}`;
+
+    delete formData.whatsapp_region;
+    delete formData.whatsapp_area;
+    delete formData.whatsapp_number_local;
+
     const { error } = await supabase
       .from("profiles")
       .update({
         ...formData,
+        whatsapp_number,
         avatar_url: newAvatarUrl,
       })
       .eq("id", user?.id);
 
-    if (error) alert("Error al guardar: " + error.message);
+    if (error) addToast("Error al guardar: " + error.message, "error");
     else {
-      alert("¡Perfil actualizado con éxito!");
+      addToast("Perfil actualizado con éxito.", "success");
       setCurrentAvatar(newAvatarUrl);
     }
     setSaving(false);
   };
 
-  // --- BORRAR CUENTA ---
   const handleDeleteAccount = async (data) => {
-    if (!data.delete_reason) return alert("Por favor, selecciona un motivo.");
+    if (!data.delete_reason)
+      return addToast("Por favor, selecciona un motivo.", "warning");
     setDeleting(true);
 
-    // Si elige "Otro motivo", concatenamos la descripción al texto que se guardará
     let finalReason = data.delete_reason;
     if (finalReason === "Otro motivo" && data.other_description) {
       finalReason = `Otro motivo: ${data.other_description}`;
@@ -105,12 +142,15 @@ export default function EditProfile() {
     const { error } = await supabase.rpc("delete_my_account");
 
     if (error) {
-      alert("Hubo un error al borrar la cuenta: " + error.message);
+      addToast("Hubo un error al borrar la cuenta: " + error.message, "error");
       setDeleting(false);
     } else {
       await supabase.auth.signOut();
-      alert("Tu cuenta ha sido eliminada. ¡Esperamos verte pronto!");
-      window.location.href = "/";
+      addToast(
+        "Tu cuenta ha sido eliminada. ¡Esperamos verte pronto!",
+        "success",
+      );
+      router.push("/");
     }
   };
 
@@ -122,7 +162,6 @@ export default function EditProfile() {
     );
 
   return (
-    // motion.main agrega una animación de entrada suave a toda la página
     <motion.main
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -162,7 +201,7 @@ export default function EditProfile() {
           </div>
         </div>
 
-        {/* Reemplazamos los values y onChange manuales por {...register("nombre_del_campo")} */}
+        {}
         <input
           type="text"
           {...register("company_name", { required: true })}
@@ -181,12 +220,36 @@ export default function EditProfile() {
           placeholder="Apellido"
           className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500"
         />
-        <input
-          type="text"
-          {...register("whatsapp_number", { required: true })}
-          placeholder="WhatsApp"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500"
-        />
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            WhatsApp
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+            <select
+              {...register("whatsapp_region", { required: true })}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm bg-white col-span-1"
+            >
+              <option value="">+54</option>
+              {countries.map((c) => (
+                <option key={c.code} value={c.code}>
+                  +{c.code}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              {...register("whatsapp_area", { required: true })}
+              placeholder="381"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm"
+            />
+            <input
+              type="text"
+              {...register("whatsapp_number_local", { required: true })}
+              placeholder="9999999"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm col-span-2 sm:col-span-1"
+            />
+          </div>
+        </div>
         <input
           type="text"
           {...register("niche", { required: true })}
@@ -231,7 +294,7 @@ export default function EditProfile() {
         </div>
       </form>
 
-      {/* --- ZONA DE PELIGRO --- */}
+      {}
       <div className="mt-12 bg-red-50 p-6 rounded-3xl border border-red-100 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <h4 className="text-red-800 font-bold text-lg">Zona de Peligro</h4>
@@ -244,7 +307,7 @@ export default function EditProfile() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
-            resetDelete(); // Limpia el formulario modal si se había abierto antes
+            resetDelete();
             setShowDeleteModal(true);
           }}
           className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-sm whitespace-nowrap"
@@ -253,7 +316,7 @@ export default function EditProfile() {
         </motion.button>
       </div>
 
-      {/* --- MODAL DE BORRADO ANIMADO CON FRAMER MOTION --- */}
+      {}
       <AnimatePresence>
         {showDeleteModal && (
           <motion.div
@@ -292,8 +355,11 @@ export default function EditProfile() {
                       <input
                         type="radio"
                         value={reason}
-                        {...registerDelete("delete_reason", { required: true })}
-                        className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                        {...registerDelete("delete_reason", {
+                          required: true,
+                          onChange: (e) => setSelectedReason(e.target.value),
+                        })}
+                        className="w-4 h-4 text-emerald-600"
                       />
                       <span className="text-sm font-medium text-gray-700">
                         {reason}
@@ -302,7 +368,7 @@ export default function EditProfile() {
                   ))}
                 </div>
 
-                {/* --- DESPLIEGUE ANIMADO DE TEXTAREA SI ELIGE "OTRO MOTIVO" --- */}
+                {}
                 <AnimatePresence>
                   {selectedReason === "Otro motivo" && (
                     <motion.div

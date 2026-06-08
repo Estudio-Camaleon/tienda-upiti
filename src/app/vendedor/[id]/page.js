@@ -1,4 +1,3 @@
-// Archivo: src/app/vendedor/[id]/page.js
 "use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -7,6 +6,7 @@ import ProductCard from "../../../components/ProductCard";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
 import { CONFIG } from "../../../data/config";
+import { useToast } from "../../../context/ToastContext";
 
 export default function SellerProfile() {
   const { id } = useParams();
@@ -16,10 +16,10 @@ export default function SellerProfile() {
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { addToast } = useToast();
   const [currentUser, setCurrentUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Implementación de React Hook Form
   const { register, handleSubmit, reset } = useForm({
     defaultValues: { rating: 5, comment: "" },
   });
@@ -27,7 +27,6 @@ export default function SellerProfile() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Protección: Si el ID es inválido, detenemos la carga inmediatamente
         if (!id || id === "null" || id === "undefined") {
           setLoading(false);
           return;
@@ -38,7 +37,6 @@ export default function SellerProfile() {
         } = await supabase.auth.getSession();
         setCurrentUser(session?.user || null);
 
-        // 1. Obtener datos del vendedor
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("*")
@@ -48,16 +46,15 @@ export default function SellerProfile() {
         if (profileError) console.error("Error cargando perfil:", profileError);
         setSeller(profileData);
 
-        // 2. Obtener productos
         const { data: productsData, error: prodError } = await supabase
           .from("products")
-          .select("*")
-          .eq("seller_id", id);
+          .select("*, profiles(whatsapp_number, company_name)")
+          .eq("seller_id", id)
+          .eq("status", "approved");
 
         if (prodError) console.error("Error cargando productos:", prodError);
         setProducts(productsData || []);
 
-        // 3. Obtener reseñas
         const { data: reviewsData, error: revError } = await supabase
           .from("reviews")
           .select(
@@ -68,7 +65,7 @@ export default function SellerProfile() {
 
         if (revError) {
           console.error("Error cargando reseñas:", revError);
-          // Fallback de seguridad: Si falla el JOIN, traemos solo las reseñas simples
+
           const { data: fallbackReviews } = await supabase
             .from("reviews")
             .select("*")
@@ -86,28 +83,25 @@ export default function SellerProfile() {
     fetchData();
   }, [id]);
 
-  // Manejador del formulario procesado por React Hook Form
   const onSubmitReview = async (data) => {
     if (!currentUser)
-      return alert("Debes iniciar sesión para dejar una reseña.");
+      return addToast("Debes iniciar sesión para dejar una reseña.", "warning");
     setSubmitting(true);
 
-    const { error } = await supabase
-      .from("reviews")
-      .insert([
-        {
-          reviewer_id: currentUser.id,
-          seller_id: id,
-          rating: Number(data.rating),
-          comment: data.comment,
-        },
-      ]);
+    const { error } = await supabase.from("reviews").insert([
+      {
+        reviewer_id: currentUser.id,
+        seller_id: id,
+        rating: Number(data.rating),
+        comment: data.comment,
+      },
+    ]);
 
     if (error) {
-      alert("Error al enviar reseña: " + error.message);
+      addToast("Error al enviar reseña: " + error.message, "error");
     } else {
-      alert("¡Reseña enviada!");
-      reset(); // Limpia el formulario automáticamente
+      addToast("Reseña enviada con éxito.", "success");
+      reset();
       window.location.reload();
     }
     setSubmitting(false);
@@ -132,7 +126,7 @@ export default function SellerProfile() {
         </p>
         <button
           onClick={() => router.push("/")}
-          className="mt-6 bg-emerald-100 text-emerald-700 px-6 py-2 rounded-full font-bold hover:bg-emerald-200 transition-colors"
+          className="mt-6 bg-emerald-100 text-emerald-700 px-6 py-3 sm:py-2 rounded-full font-bold hover:bg-emerald-200 transition-colors min-h-[44px] sm:min-h-0"
         >
           Volver al inicio
         </button>
@@ -153,7 +147,7 @@ export default function SellerProfile() {
       transition={{ duration: 0.5 }}
       className="max-w-6xl mx-auto px-4 py-8"
     >
-      {/* CABECERA DEL PERFIL */}
+      {}
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-6 mb-8 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-24 bg-emerald-500/10"></div>
 
@@ -164,8 +158,16 @@ export default function SellerProfile() {
         />
 
         <div className="flex-1 text-center md:text-left z-10 pt-4 md:pt-10">
-          <h1 className="text-3xl font-black text-gray-900">
+          <h1 className="text-3xl font-black text-gray-900 flex items-center gap-2">
             {seller.company_name || `${seller.first_name} ${seller.last_name}`}
+            {seller.is_verified && (
+              <span
+                className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full"
+                title="Vendedor verificado"
+              >
+                ✓ Verificado
+              </span>
+            )}
           </h1>
           <p className="text-gray-500 font-medium">
             {seller.niche} • {seller.city}, {seller.province}
@@ -193,7 +195,7 @@ export default function SellerProfile() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* CATÁLOGO DEL VENDEDOR */}
+        {}
         <div className="lg:col-span-2 space-y-4">
           <h2 className="text-2xl font-black text-gray-900">
             Catálogo ({products.length})
@@ -211,11 +213,11 @@ export default function SellerProfile() {
           )}
         </div>
 
-        {/* SECCIÓN DE RESEÑAS */}
+        {}
         <div className="space-y-6">
           <h2 className="text-2xl font-black text-gray-900">Reseñas</h2>
 
-          {/* Formulario para dejar reseña con React Hook Form */}
+          {}
           {currentUser && currentUser.id !== id && (
             <form
               onSubmit={handleSubmit(onSubmitReview)}
@@ -224,7 +226,7 @@ export default function SellerProfile() {
               <h4 className="font-bold text-sm mb-3">Dejar una reseña</h4>
               <select
                 {...register("rating")}
-                className="w-full mb-3 px-3 py-2 rounded-lg border border-gray-200 outline-none text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                className="w-full mb-3 px-4 py-3 sm:py-2 rounded-xl border border-gray-200 outline-none text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all min-h-[44px] sm:min-h-0"
               >
                 <option value={5}>⭐⭐⭐⭐⭐ (5/5)</option>
                 <option value={4}>⭐⭐⭐⭐ (4/5)</option>
@@ -235,7 +237,7 @@ export default function SellerProfile() {
               <textarea
                 {...register("comment", { required: true })}
                 placeholder="Escribe tu experiencia..."
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 outline-none text-sm h-20 mb-3 resize-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                className="w-full px-4 py-3 sm:py-2 rounded-xl border border-gray-200 outline-none text-sm h-24 sm:h-20 mb-3 resize-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
               ></textarea>
 
               <motion.button
@@ -243,14 +245,14 @@ export default function SellerProfile() {
                 whileTap={{ scale: 0.95 }}
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg text-sm disabled:opacity-50 shadow-sm"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 sm:py-2 rounded-xl text-sm disabled:opacity-50 shadow-sm min-h-[44px] sm:min-h-0"
               >
                 {submitting ? "Enviando..." : "Publicar reseña"}
               </motion.button>
             </form>
           )}
 
-          {/* Lista de reseñas */}
+          {}
           <div className="space-y-4">
             {reviews.length === 0 ? (
               <p className="text-gray-400 text-sm">

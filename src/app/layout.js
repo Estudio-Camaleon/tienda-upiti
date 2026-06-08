@@ -1,29 +1,33 @@
-// Archivo: src/app/layout.js
 import "./globals.css";
 import { CONFIG } from "../data/config";
-import { CartProvider } from "../context/CartContext";
+import { StoreConfigProvider } from "../context/StoreConfigContext";
+import { ToastProvider } from "../context/ToastContext";
+import { ConfirmProvider } from "../context/ConfirmContext";
 import Header from "../components/Header";
-import CartModal from "../components/CartModal";
+import ThemeColor from "../components/ThemeColor";
 
 export const metadata = {
   title: `${CONFIG.storeName} - Compra Rápida`,
   description:
     "Comprá fácil y rápido, enviando tu pedido directamente por WhatsApp.",
   icons: {
-    icon: "/media/logo/favicon.svg", // o '/icon.png'
+    icon: "/media/logo/favicon.svg",
   },
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es" style={{ "--theme-color": CONFIG.mainColor }}>
-      <body className="bg-gray-50 text-gray-900 font-sans antialiased selection:bg-emerald-500 selection:text-white pb-20 min-h-screen flex flex-col">
-        {/* Envolvemos toda la aplicación en el Provider del Carrito */}
-        <CartProvider>
-          <Header />
-          {children}
-          <CartModal />
-        </CartProvider>
+    <html lang="es">
+      <body className="bg-gray-50 text-gray-900 font-sans antialiased selection:bg-emerald-500 selection:text-white min-h-screen flex flex-col">
+        <StoreConfigProvider>
+          <ConfirmProvider>
+            <ToastProvider>
+              <ThemeColor />
+              <Header />
+              {children}
+            </ToastProvider>
+          </ConfirmProvider>
+        </StoreConfigProvider>
       </body>
     </html>
   );

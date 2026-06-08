@@ -1,40 +1,24 @@
-/* Archivo: src/app/globals.css */
 @import "tailwindcss";
-
-/* Archivo: src/app/globals.css */
-@import "tailwindcss";
-
+:root {
+  --theme-color: #ed355d;
+}
 @theme {
-  /* Sobrescribimos la paleta esmeralda. 
-    Usamos color-mix para aclarar u oscurecer automáticamente tu color base.
-  */
   --color-emerald-50: color-mix(in srgb, var(--theme-color) 10%, white);
   --color-emerald-100: color-mix(in srgb, var(--theme-color) 20%, white);
   --color-emerald-400: color-mix(in srgb, var(--theme-color) 80%, white);
-  --color-emerald-500: var(
-    --theme-color
-  ); /* Tu color exacto para los botones */
-  --color-emerald-600: color-mix(
-    in srgb,
-    var(--theme-color) 80%,
-    black
-  ); /* Hover más oscuro */
+  --color-emerald-500: var(--theme-color);
+  --color-emerald-600: color-mix(in srgb, var(--theme-color) 80%, black);
   --color-emerald-700: color-mix(in srgb, var(--theme-color) 60%, black);
   --color-emerald-800: color-mix(in srgb, var(--theme-color) 40%, black);
 }
-
-/* 1. Utilidades Personalizadas */
 @layer utilities {
-  /* Ocultar barra de desplazamiento para los filtros horizontales */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
   .no-scrollbar {
-    -ms-overflow-style: none; /* IE y Edge */
-    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
-
-  /* Clases de animación enlazadas a los Keyframes */
   .animate-fade-in-up {
     animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
@@ -45,8 +29,6 @@
     animation: float 4s ease-in-out infinite;
   }
 }
-
-/* 2. Animaciones Personalizadas (Keyframes estándar de CSS) */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -57,7 +39,6 @@
     transform: translateY(0);
   }
 }
-
 @keyframes pop {
   0% {
     transform: scale(0.5);
@@ -71,7 +52,6 @@
     opacity: 1;
   }
 }
-
 @keyframes float {
   0% {
     transform: translateY(0px);
@@ -83,15 +63,10 @@
     transform: translateY(0px);
   }
 }
-
-/* 3. Estilos Globales del Sistema */
 html {
-  /* Hace que cuando clickeas un link interno, baje suavemente en vez de saltar de golpe */
   scroll-behavior: smooth;
 }
-
 body {
-  /* Suaviza los bordes de la tipografía para que se vea premium en pantallas de alta resolución */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
