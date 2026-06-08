@@ -1,10 +1,10 @@
 CREATE TABLE public.store_config (
   id BIGINT NOT NULL DEFAULT 1,
-  store_name TEXT NOT NULL DEFAULT 'Upiti',
+  logo_image TEXT DEFAULT './media/logo/icono_upiti.webp',
   logo_url TEXT DEFAULT '/media/logo/logo_upiti.svg',
   whatsapp_number TEXT DEFAULT '',
   currency TEXT DEFAULT '$',
-  hero_image TEXT DEFAULT 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=2070',
+  hero_image TEXT DEFAULT './media/portadas/portada_upiti.webp',
   main_color TEXT DEFAULT '#ed355d',
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
   CONSTRAINT store_config_pkey PRIMARY KEY (id),

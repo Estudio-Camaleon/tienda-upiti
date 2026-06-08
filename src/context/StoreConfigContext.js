@@ -8,7 +8,7 @@ const StoreConfigContext = createContext();
 
 export function StoreConfigProvider({ children }) {
   const [storeConfig, setStoreConfig] = useState({
-    storeName: CONFIG.storeName,
+    logo_image: CONFIG.logo_image,
     logoUrl: CONFIG.logoUrl,
     heroImage: CONFIG.heroImage,
     mainColor: CONFIG.mainColor,
@@ -27,7 +27,7 @@ export function StoreConfigProvider({ children }) {
 
       if (data) {
         setStoreConfig({
-          storeName: data.store_name || CONFIG.storeName,
+          logo_image: data.logo_image || CONFIG.logo_image,
           logoUrl: data.logo_url || CONFIG.logoUrl,
           heroImage: data.hero_image || CONFIG.heroImage,
           mainColor: data.main_color || CONFIG.mainColor,

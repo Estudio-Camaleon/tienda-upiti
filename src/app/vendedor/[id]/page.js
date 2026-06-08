@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
@@ -13,9 +13,9 @@ function StarRating({ rating, size = "sm" }) {
   const sizeClass = size === "lg" ? "text-lg" : "text-xs";
   return (
     <span className={`text-amber-400 ${sizeClass}`}>
-      {"★".repeat(Math.floor(rating))}
+      {"?".repeat(Math.floor(rating))}
       {rating % 1 >= 0.5 ? "½" : ""}
-      {"☆".repeat(5 - Math.ceil(rating))}
+      {"?".repeat(5 - Math.ceil(rating))}
     </span>
   );
 }
@@ -108,7 +108,7 @@ export default function SellerProfile() {
           .order("created_at", { ascending: false });
 
         if (revError) {
-          console.error("Error cargando reseñas:", revError);
+          console.error("Error cargando resenas:", revError);
           const { data: fallbackReviews } = await supabase
             .from("reviews")
             .select("*")
@@ -118,7 +118,7 @@ export default function SellerProfile() {
           setReviews(reviewsData || []);
         }
       } catch (err) {
-        console.error("Error de conexión:", err);
+        console.error("Error de conexion:", err);
       } finally {
         setLoading(false);
       }
@@ -126,9 +126,43 @@ export default function SellerProfile() {
     fetchData();
   }, [id]);
 
+  // update meta tags client-side when seller loads
+  useEffect(() => {
+    if (loading) return;
+    const title = seller
+      ? `${seller.company_name || `${seller.first_name} ${seller.last_name}`} - ${CONFIG.logo_image}`
+      : `${CONFIG.logo_image} - Vendedores`;
+    const description =
+      seller?.bio ||
+      seller?.niche ||
+      `Conoce a ${seller?.company_name || seller?.first_name} en ${CONFIG.logo_image}`;
+    const image = seller?.avatar_url || "/media/logo/icono_upiti.webp";
+
+    const upsertMeta = (attr, name, content) => {
+      const selector =
+        attr === "name" ? `meta[name="${name}"]` : `meta[property="${name}"]`;
+      let el = document.head.querySelector(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, name);
+        document.head.appendChild(el);
+      }
+      el.content = content;
+    };
+
+    document.title = title;
+    upsertMeta("name", "description", description);
+    upsertMeta("property", "og:title", title);
+    upsertMeta("property", "og:description", description);
+    upsertMeta("property", "og:image", image);
+    upsertMeta("name", "twitter:card", "summary_large_image");
+    upsertMeta("name", "twitter:image", image);
+    upsertMeta("name", "theme-color", themeColor || CONFIG.mainColor);
+  }, [loading, seller, themeColor]);
+
   const onSubmitReview = async (data) => {
     if (!currentUser)
-      return addToast("Debes iniciar sesión para dejar una reseña.", "warning");
+      return addToast("Debes iniciar sesion para dejar una resena.", "warning");
     setSubmitting(true);
 
     const { error } = await supabase.from("reviews").insert([
@@ -141,9 +175,9 @@ export default function SellerProfile() {
     ]);
 
     if (error) {
-      addToast("Error al enviar reseña: " + error.message, "error");
+      addToast("Error al enviar resena: " + error.message, "error");
     } else {
-      addToast("Reseña enviada con éxito.", "success");
+      addToast("Resena enviada con exito.", "success");
       reset();
       window.location.reload();
     }
@@ -272,7 +306,7 @@ export default function SellerProfile() {
                     className="text-sm font-bold"
                     style={{ color: themeColor }}
                   >
-                    {ratingDisplay || "—"}
+                    {ratingDisplay || "-"}
                   </span>
                   <span className="text-xs text-gray-400">
                     ({reviews.length})
@@ -316,7 +350,7 @@ export default function SellerProfile() {
                   <span className="text-sm font-bold text-gray-700">
                     {reviews.length}
                   </span>
-                  <span className="text-xs text-gray-400">reseñas</span>
+                  <span className="text-xs text-gray-400">resenas</span>
                 </div>
               </div>
             </div>
@@ -327,7 +361,7 @@ export default function SellerProfile() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <h2 className="text-2xl font-black text-gray-900">
-            Catálogo ({products.length})
+            Catalogo ({products.length})
           </h2>
           {products.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
@@ -345,7 +379,7 @@ export default function SellerProfile() {
                 />
               </svg>
               <p className="text-gray-400">
-                Este vendedor aún no tiene productos publicados.
+                Este vendedor aun no tiene productos publicados.
               </p>
             </div>
           ) : (
@@ -381,7 +415,7 @@ export default function SellerProfile() {
 
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">
-              Información
+              Informacion
             </h3>
             <div className="space-y-3 text-sm">
               {seller.first_name && seller.last_name && (
@@ -410,7 +444,7 @@ export default function SellerProfile() {
               )}
               {seller.city && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Ubicación</span>
+                  <span className="text-gray-400">Ubicacion</span>
                   <span className="font-medium text-gray-900">
                     {seller.city}
                     {seller.province ? `, ${seller.province}` : ""}
@@ -419,7 +453,7 @@ export default function SellerProfile() {
               )}
               {seller.address && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Dirección</span>
+                  <span className="text-gray-400">Direccion</span>
                   <span className="font-medium text-gray-900 text-right max-w-[60%]">
                     {seller.address}
                   </span>
@@ -454,7 +488,7 @@ export default function SellerProfile() {
 
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
-              Reseñas
+              Resenas
             </h3>
 
             {currentUser && currentUser.id !== id && (
@@ -462,7 +496,7 @@ export default function SellerProfile() {
                 onSubmit={handleSubmit(onSubmitReview)}
                 className="mb-5 pb-5 border-b border-gray-100"
               >
-                <h4 className="font-bold text-sm mb-3">Dejar una reseña</h4>
+                <h4 className="font-bold text-sm mb-3">Dejar una resena</h4>
                 <select
                   {...register("rating")}
                   className="w-full mb-3 px-4 py-3 sm:py-2.5 rounded-xl border border-gray-200 outline-none text-sm focus:ring-2 transition-all min-h-[44px] sm:min-h-0"
@@ -476,11 +510,11 @@ export default function SellerProfile() {
                     e.currentTarget.style.boxShadow = "";
                   }}
                 >
-                  <option value={5}>★★★★★ (5/5)</option>
-                  <option value={4}>★★★★☆ (4/5)</option>
-                  <option value={3}>★★★☆☆ (3/5)</option>
-                  <option value={2}>★★☆☆☆ (2/5)</option>
-                  <option value={1}>★☆☆☆☆ (1/5)</option>
+                  <option value={5}>????? (5/5)</option>
+                  <option value={4}>????? (4/5)</option>
+                  <option value={3}>????? (3/5)</option>
+                  <option value={2}>????? (2/5)</option>
+                  <option value={1}>????? (1/5)</option>
                 </select>
                 <textarea
                   {...register("comment", { required: true })}
@@ -511,7 +545,7 @@ export default function SellerProfile() {
                     e.currentTarget.style.filter = "";
                   }}
                 >
-                  {submitting ? "Enviando..." : "Publicar reseña"}
+                  {submitting ? "Enviando..." : "Publicar resena"}
                 </motion.button>
               </form>
             )}
@@ -519,7 +553,7 @@ export default function SellerProfile() {
             <div className="space-y-4">
               {reviews.length === 0 ? (
                 <p className="text-gray-400 text-sm text-center py-4">
-                  Nadie ha dejado una reseña todavía.
+                  Nadie ha dejado una resena todavia.
                 </p>
               ) : (
                 reviews.map((rev) => (

@@ -15,7 +15,7 @@ function openWhatsApp(phone, product) {
 }
 
 export default function Hero({ products, loading }) {
-  const { storeName, mainColor, heroImage } = useStoreConfig();
+  const { logo_image, mainColor, heroImage } = useStoreConfig();
   const themeColor = mainColor || CONFIG.mainColor;
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
@@ -94,7 +94,7 @@ export default function Hero({ products, loading }) {
       <div className="relative px-6 sm:px-10 py-8 sm:py-12 backdrop-blur-[2px]">
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight">
-            {storeName || CONFIG.storeName}
+            {logo_image || CONFIG.logo_image}
           </h1>
           <p className="text-gray-600 text-sm sm:text-base mt-2 max-w-xl mx-auto font-medium">
             Descubrí productos únicos de emprendedores locales. Comprá directo

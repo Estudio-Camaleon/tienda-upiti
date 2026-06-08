@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -10,7 +10,7 @@ import ProductCard from "../../../components/ProductCard";
 
 function openWhatsApp(phone, product) {
   const message = encodeURIComponent(
-    `¡Hola! Me gustaría consultar sobre:\n\n🏷️ *${product.name}*\n💰 ${CONFIG.currency}${Number(product.price).toLocaleString("es-AR")}\n📂 ${product.category}\n\nQuedo atento. ¡Gracias!`,
+    `Hola! Me gustaria consultar sobre:\n\n??? *${product.name}*\n?? ${CONFIG.currency}${Number(product.price).toLocaleString("es-AR")}\n?? ${product.category}\n\nQuedo atento. Gracias!`,
   );
   window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
 }
@@ -84,7 +84,7 @@ function SellerCard({ seller, themeColor }) {
         className="mt-2 block text-center text-xs font-bold transition-colors"
         style={{ color: themeColor }}
       >
-        Ver perfil completo →
+        Ver perfil completo ?
       </Link>
     </div>
   );
@@ -129,6 +129,39 @@ export default function ProductDetail() {
     fetchProduct();
   }, [id]);
 
+  // Update meta tags dynamically on the client once product is loaded
+  useEffect(() => {
+    if (loading) return;
+    const title = product
+      ? `${product.name} - ${CONFIG.logo_image}`
+      : `${CONFIG.logo_image} - Compra Rapida`;
+    const description =
+      product?.description ||
+      "Compra facil y rapido, enviando tu pedido directamente por WhatsApp.";
+    const image = product?.image || "/media/portadas/portada_upiti.webp";
+
+    const upsertMeta = (attr, name, content) => {
+      const selector =
+        attr === "name" ? `meta[name="${name}"]` : `meta[property="${name}"]`;
+      let el = document.head.querySelector(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, name);
+        document.head.appendChild(el);
+      }
+      el.content = content;
+    };
+
+    document.title = title;
+    upsertMeta("name", "description", description);
+    upsertMeta("property", "og:title", title);
+    upsertMeta("property", "og:description", description);
+    upsertMeta("property", "og:image", image);
+    upsertMeta("name", "twitter:card", "summary_large_image");
+    upsertMeta("name", "twitter:image", image);
+    upsertMeta("name", "theme-color", themeColor || CONFIG.mainColor);
+  }, [loading, product, themeColor]);
+
   if (loading) return <LoadingSkeleton />;
 
   if (!product) {
@@ -157,7 +190,7 @@ export default function ProductDetail() {
           Producto no encontrado
         </h2>
         <p className="text-gray-500 text-sm mt-2 max-w-xs">
-          Este producto no está disponible o está pendiente de moderación.
+          Este producto no esta disponible o esta pendiente de moderacion.
         </p>
         <button
           onClick={() => router.push("/")}
@@ -199,11 +232,11 @@ export default function ProductDetail() {
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="3"
+            strokeWidth={3}
             d="M10 19l-7-7m0 0l7-7m-7 7h18"
           />
         </svg>
-        Volver al catálogo
+        Volver al catalogo
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -290,19 +323,23 @@ export default function ProductDetail() {
                 )}
               </div>
             </div>
+
+            {relatedProducts.length > 0 && (
+              <section className="mt-10">
+                <h2 className="text-xl font-black text-gray-900 mb-4">
+                  Productos relacionados
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {relatedProducts.map((p, i) => (
+                    <ProductCard key={p.id} product={p} index={i} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
 
           {relatedProducts.length > 0 && (
-            <section className="mt-10">
-              <h2 className="text-xl font-black text-gray-900 mb-4">
-                Productos relacionados
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {relatedProducts.map((p, i) => (
-                  <ProductCard key={p.id} product={p} index={i} />
-                ))}
-              </div>
-            </section>
+            <section className="mt-10">{/* already above */}</section>
           )}
         </div>
 
@@ -315,7 +352,7 @@ export default function ProductDetail() {
             </h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">Categoría</span>
+                <span className="text-gray-400">Categoria</span>
                 <span className="font-medium text-gray-900">
                   {product.category}
                 </span>
