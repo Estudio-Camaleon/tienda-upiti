@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { registerSchema } from "../../lib/schemas";
+import { onlyDigits, concatParts } from "../../lib/phone";
 
 function sanitize(obj) {
   for (const key of Object.keys(obj)) {
@@ -275,7 +276,11 @@ export default function Register() {
       }
     }
 
-    const whatsapp_number = `${data.whatsapp_region}${data.whatsapp_area}${data.whatsapp_number_local}`;
+    const whatsapp_number = concatParts(
+      data.whatsapp_region,
+      data.whatsapp_area,
+      data.whatsapp_number_local,
+    );
 
     let profileError = null;
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -302,8 +307,37 @@ export default function Register() {
       if (!profileError) break;
     }
 
-    if (profileError) setError("Error al guardar el perfil. Intentá de nuevo.");
-    else router.push("/dashboard");
+    const pendingProfile = {
+      email: data.email,
+      first_name: data.first_name || "",
+      last_name: data.last_name || "",
+      company_name: data.company_name || "",
+      province: data.province || "",
+      city: data.city || "",
+      address: data.address || "",
+      // store sanitized (digits-only) parts so restoring them later yields
+      // the same visible values in the form
+      whatsapp_region: onlyDigits(data.whatsapp_region) || "",
+      whatsapp_area: onlyDigits(data.whatsapp_area) || "",
+      whatsapp_number_local: onlyDigits(data.whatsapp_number_local) || "",
+      birthdate: data.birthdate || "",
+      niche: data.niche || "",
+      social_links: data.social_links || "",
+    };
+
+    if (profileError) {
+      try {
+        localStorage.setItem("pending_profile", JSON.stringify(pendingProfile));
+      } catch (e) {}
+      setError(
+        "Error al guardar el perfil. Guardamos temporalmente tus datos, por favor iniciá sesión e intentá de nuevo.",
+      );
+    } else {
+      try {
+        localStorage.removeItem("pending_profile");
+      } catch (e) {}
+      router.push("/dashboard");
+    }
 
     setLoading(false);
   };

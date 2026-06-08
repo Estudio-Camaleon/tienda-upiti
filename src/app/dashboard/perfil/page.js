@@ -6,6 +6,11 @@ import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { profileSchema } from "../../../lib/schemas";
+import {
+  onlyDigits,
+  concatParts,
+  splitWhatsAppNumber,
+} from "../../../lib/phone";
 import { useToast } from "../../../context/ToastContext";
 
 const countries = [
@@ -186,7 +191,10 @@ export default function EditProfile() {
         .eq("id", session.user.id)
         .single();
       if (data) {
-        const num = data.whatsapp_number || "";
+        // Normalize stored number to digits-only before attempting to split
+        const raw = data.whatsapp_number || "";
+        const num = String(raw).replace(/\D/g, "");
+        // Try to split into region (1-4), area (2-4), local (6-8)
         const match = num.match(/^(\d{1,4})(\d{2,4})(\d{6,8})$/);
         reset({
           first_name: data.first_name || "",
@@ -198,11 +206,39 @@ export default function EditProfile() {
           niche: data.niche || "",
           social_links: data.social_links || "",
           birthdate: data.birthdate || "",
+          // If regex matched, use groups. Otherwise, fall back to sensible
+          // slices but keep only digits.
           whatsapp_region: match?.[1] || num.slice(0, 2) || "",
           whatsapp_area: match?.[2] || num.slice(2, 5) || "",
           whatsapp_number_local: match?.[3] || num.slice(5) || "",
         });
         setCurrentAvatar(data.avatar_url);
+      } else {
+        try {
+          const pending = localStorage.getItem("pending_profile");
+          if (pending) {
+            const pd = JSON.parse(pending);
+            reset({
+              first_name: pd.first_name || "",
+              last_name: pd.last_name || "",
+              company_name: pd.company_name || "",
+              province: pd.province || "",
+              city: pd.city || "",
+              address: pd.address || "",
+              niche: pd.niche || "",
+              social_links: pd.social_links || "",
+              birthdate: pd.birthdate || "",
+              whatsapp_region: pd.whatsapp_region || "",
+              whatsapp_area: pd.whatsapp_area || "",
+              whatsapp_number_local: pd.whatsapp_number_local || "",
+            });
+            localStorage.removeItem("pending_profile");
+            addToast(
+              "Recuperamos los datos que completaste al registrarte.",
+              "info",
+            );
+          }
+        } catch (e) {}
       }
       setLoading(false);
     }
@@ -230,7 +266,11 @@ export default function EditProfile() {
       }
     }
 
-    const whatsapp_number = `${formData.whatsapp_region}${formData.whatsapp_area}${formData.whatsapp_number_local}`;
+    const whatsapp_number = concatParts(
+      formData.whatsapp_region,
+      formData.whatsapp_area,
+      formData.whatsapp_number_local,
+    );
 
     const { error } = await supabase
       .from("profiles")
