@@ -196,6 +196,23 @@ export default function EditProfile() {
         const num = String(raw).replace(/\D/g, "");
         // Try to split into region (1-4), area (2-4), local (6-8)
         const match = num.match(/^(\d{1,4})(\d{2,4})(\d{6,8})$/);
+        // If the profile already contains separated parts use them, otherwise
+        // fall back to splitting the concatenated whatsapp_number
+        const parts =
+          data.whatsapp_region ||
+          data.whatsapp_area ||
+          data.whatsapp_number_local
+            ? {
+                whatsapp_region: data.whatsapp_region || "",
+                whatsapp_area: data.whatsapp_area || "",
+                whatsapp_number_local: data.whatsapp_number_local || "",
+              }
+            : {
+                whatsapp_region: match?.[1] || num.slice(0, 2) || "",
+                whatsapp_area: match?.[2] || num.slice(2, 5) || "",
+                whatsapp_number_local: match?.[3] || num.slice(5) || "",
+              };
+
         reset({
           first_name: data.first_name || "",
           last_name: data.last_name || "",
@@ -206,11 +223,9 @@ export default function EditProfile() {
           niche: data.niche || "",
           social_links: data.social_links || "",
           birthdate: data.birthdate || "",
-          // If regex matched, use groups. Otherwise, fall back to sensible
-          // slices but keep only digits.
-          whatsapp_region: match?.[1] || num.slice(0, 2) || "",
-          whatsapp_area: match?.[2] || num.slice(2, 5) || "",
-          whatsapp_number_local: match?.[3] || num.slice(5) || "",
+          whatsapp_region: parts.whatsapp_region,
+          whatsapp_area: parts.whatsapp_area,
+          whatsapp_number_local: parts.whatsapp_number_local,
         });
         setCurrentAvatar(data.avatar_url);
       } else {
@@ -271,6 +286,10 @@ export default function EditProfile() {
       formData.whatsapp_area,
       formData.whatsapp_number_local,
     );
+    const whatsapp_region = onlyDigits(formData.whatsapp_region) || null;
+    const whatsapp_area = onlyDigits(formData.whatsapp_area) || null;
+    const whatsapp_number_local =
+      onlyDigits(formData.whatsapp_number_local) || null;
 
     const { error } = await supabase
       .from("profiles")
@@ -285,6 +304,9 @@ export default function EditProfile() {
         social_links: formData.social_links || null,
         birthdate: formData.birthdate || null,
         whatsapp_number,
+        whatsapp_region,
+        whatsapp_area,
+        whatsapp_number_local,
         avatar_url: newAvatarUrl,
       })
       .eq("id", user?.id);

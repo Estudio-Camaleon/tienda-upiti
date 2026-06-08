@@ -281,6 +281,10 @@ export default function Register() {
       data.whatsapp_area,
       data.whatsapp_number_local,
     );
+    const whatsapp_region = onlyDigits(data.whatsapp_region) || null;
+    const whatsapp_area = onlyDigits(data.whatsapp_area) || null;
+    const whatsapp_number_local =
+      onlyDigits(data.whatsapp_number_local) || null;
 
     let profileError = null;
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -296,6 +300,9 @@ export default function Register() {
           city: data.city,
           address: data.address,
           whatsapp_number,
+          whatsapp_region,
+          whatsapp_area,
+          whatsapp_number_local,
           birthdate: data.birthdate,
           niche: data.niche,
           social_links: data.social_links,
