@@ -103,15 +103,19 @@ function SellerDashboard({ user }) {
       const { error: uploadError } = await supabase.storage
         .from("products")
         .upload(fileName, productImage);
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage
-          .from("products")
-          .getPublicUrl(fileName);
-        imageUrl = urlData.publicUrl;
+      if (uploadError) {
+        addToast("Error al subir la imagen: " + uploadError.message, "error");
+        setUploading(false);
+        return;
       }
+
+      const { data: urlData } = supabase.storage
+        .from("products")
+        .getPublicUrl(fileName);
+      imageUrl = urlData.publicUrl;
     }
 
-    await supabase.from("products").insert([
+    const { error: insertError } = await supabase.from("products").insert([
       {
         name: data.name,
         brand: data.brand || null,
@@ -123,6 +127,12 @@ function SellerDashboard({ user }) {
         status: "pending",
       },
     ]);
+
+    if (insertError) {
+      addToast("Error al crear el producto: " + insertError.message, "error");
+      setUploading(false);
+      return;
+    }
 
     addToast(
       "Producto enviado para revisión. El administrador lo revisará pronto.",
@@ -143,7 +153,14 @@ function SellerDashboard({ user }) {
       variant: "danger",
     });
     if (!ok) return;
-    await supabase.from("products").delete().eq("id", productId);
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", productId);
+    if (error) {
+      addToast("Error al eliminar: " + error.message, "error");
+      return;
+    }
     setProducts((prev) => prev.filter((p) => p.id !== productId));
     addToast("Producto eliminado.", "success");
   };
@@ -236,7 +253,10 @@ function SellerDashboard({ user }) {
         )}
       </div>
 
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-fit">
+      <div
+        id="agregar-producto"
+        className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-fit scroll-mt-24"
+      >
         <h3 className="text-lg font-black text-gray-900 mb-4">
           Agregar Producto
         </h3>
@@ -531,10 +551,14 @@ function AdminDashboard() {
   };
 
   const handleToggleVerify = async (userId, current) => {
-    await supabase
+    const { error } = await supabase
       .from("profiles")
       .update({ is_verified: !current })
       .eq("id", userId);
+    if (error) {
+      addToast("Error al actualizar verificación: " + error.message, "error");
+      return;
+    }
     reload();
   };
 

@@ -6,17 +6,19 @@ import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { CONFIG } from "../data/config";
 import { useStoreConfig } from "../context/StoreConfigContext";
+import { supabase } from "../lib/supabase";
 
 function openWhatsApp(phone, product) {
   const message = encodeURIComponent(
-    `¡Hola! Me gustaría consultar sobre:\n\n🏷️ *${product.name}*\n💰 ${CONFIG.currency}${Number(product.price).toLocaleString("es-AR")}\n📂 ${product.category}\n\nQuedo atento. ¡Gracias!`,
+    `¡Hola! Me gustaría consultar sobre:\n\nProducto: *${product.name}*\nPrecio: ${CONFIG.currency}${Number(product.price).toLocaleString("es-AR")}\nCategoría: ${product.category}\n\nQuedo atento. ¡Gracias!`,
   );
   window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
 }
 
 export default function Hero({ products, loading }) {
-  const { logo_image, mainColor, heroImage } = useStoreConfig();
+  const { logo_image, mainColor, heroImage, storeName } = useStoreConfig();
   const themeColor = mainColor || CONFIG.mainColor;
+  const [user, setUser] = useState(null);
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
@@ -39,6 +41,20 @@ export default function Hero({ products, loading }) {
   );
 
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -91,11 +107,22 @@ export default function Hero({ products, loading }) {
         style={{ backgroundColor: `${themeColor}10` }}
       />
 
-      <div className="relative px-6 sm:px-10 py-8 sm:py-12 backdrop-blur-[2px]">
+      <div className="relative px-6 sm:px-10 py-8 sm:py-12 lg:py-16 max-w-7xl mx-auto">
         <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight">
-            {logo_image || CONFIG.logo_image}
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <img
+              src={logo_image}
+              alt={storeName}
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.style.display = "none";
+              }}
+            />
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight">
+              {storeName}
+            </h1>
+          </div>
           <p className="text-gray-600 text-sm sm:text-base mt-2 max-w-xl mx-auto font-medium">
             Descubrí productos únicos de emprendedores locales. Comprá directo
             por WhatsApp, sin intermediarios.
@@ -242,7 +269,7 @@ export default function Hero({ products, loading }) {
               Explorar productos
             </Link>
             <Link
-              href="/register"
+              href={user ? "/dashboard#agregar-producto" : "/register"}
               className="bg-white font-bold text-sm px-6 py-3 sm:py-3.5 rounded-xl border transition-all shadow-sm min-h-[44px] flex items-center justify-center"
               style={{
                 color: themeColor,

@@ -1,11 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useStoreConfig } from "../context/StoreConfigContext";
 import { supabase } from "../lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Header() {
+  const router = useRouter();
   const { logoUrl } = useStoreConfig();
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -27,6 +29,7 @@ export default function Header() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setMenuOpen(false);
+    router.replace("/");
   };
 
   return (

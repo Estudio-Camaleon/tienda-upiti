@@ -10,7 +10,7 @@ import ProductCard from "../../../components/ProductCard";
 
 function openWhatsApp(phone, product) {
   const message = encodeURIComponent(
-    `Hola! Me gustaria consultar sobre:\n\n??? *${product.name}*\n?? ${CONFIG.currency}${Number(product.price).toLocaleString("es-AR")}\n?? ${product.category}\n\nQuedo atento. Gracias!`,
+    `¡Hola! Me gustaría consultar sobre:\n\nProducto: *${product.name}*\nPrecio: ${CONFIG.currency}${Number(product.price).toLocaleString("es-AR")}\nCategoría: ${product.category}\n\nQuedo atento. ¡Gracias!`,
   );
   window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
 }
@@ -133,8 +133,8 @@ export default function ProductDetail() {
   useEffect(() => {
     if (loading) return;
     const title = product
-      ? `${product.name} - ${CONFIG.logo_image}`
-      : `${CONFIG.logo_image} - Compra Rapida`;
+      ? `${product.name} - ${CONFIG.storeName}`
+      : `${CONFIG.storeName} - Compra Rapida`;
     const description =
       product?.description ||
       "Compra facil y rapido, enviando tu pedido directamente por WhatsApp.";

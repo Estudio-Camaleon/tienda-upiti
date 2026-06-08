@@ -6,10 +6,13 @@ import { ConfirmProvider } from "../context/ConfirmContext";
 import Header from "../components/Header";
 import ThemeColor from "../components/ThemeColor";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 export const metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
-    default: `${CONFIG.logo_image} - Compra Rapida`,
-    template: `%s | ${CONFIG.logo_image}`,
+    default: `${CONFIG.storeName} - Compra Rapida`,
+    template: `%s | ${CONFIG.storeName}`,
   },
   description:
     "Compra facil y rapido, enviando tu pedido directamente por WhatsApp.",
@@ -17,7 +20,7 @@ export const metadata = {
     icon: "/media/logo/favicon.svg",
   },
   openGraph: {
-    title: `${CONFIG.logo_image} - Compra Rapida`,
+    title: `${CONFIG.storeName} - Compra Rapida`,
     description:
       "Compra facil y rapido, enviando tu pedido directamente por WhatsApp.",
     images: [
@@ -25,19 +28,22 @@ export const metadata = {
         url: CONFIG.heroImage || "/media/portadas/portada_upiti.webp",
         width: 1200,
         height: 630,
-        alt: CONFIG.logo_image,
+        alt: CONFIG.storeName,
       },
     ],
-    siteName: CONFIG.logo_image,
+    siteName: CONFIG.storeName,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${CONFIG.logo_image} - Compra Rapida`,
+    title: `${CONFIG.storeName} - Compra Rapida`,
     description:
       "Compra facil y rapido, enviando tu pedido directamente por WhatsApp.",
     images: [CONFIG.heroImage || "/media/portadas/portada_upiti.webp"],
   },
+};
+
+export const viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: CONFIG.mainColor },
     { media: "(prefers-color-scheme: dark)", color: "#000000" },

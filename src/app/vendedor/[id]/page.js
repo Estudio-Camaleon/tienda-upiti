@@ -3,20 +3,67 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import ProductCard from "../../../components/ProductCard";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { CONFIG } from "../../../data/config";
 import { useStoreConfig } from "../../../context/StoreConfigContext";
 import { useToast } from "../../../context/ToastContext";
+import { reviewSchema } from "../../../lib/schemas";
 
 function StarRating({ rating, size = "sm" }) {
-  const sizeClass = size === "lg" ? "text-lg" : "text-xs";
+  const sizeClass = size === "lg" ? "w-5 h-5" : "w-4 h-4";
   return (
-    <span className={`text-amber-400 ${sizeClass}`}>
-      {"?".repeat(Math.floor(rating))}
-      {rating % 1 >= 0.5 ? "½" : ""}
-      {"?".repeat(5 - Math.ceil(rating))}
+    <span className="flex items-center gap-0.5" aria-label={`${rating} de 5`}>
+      {Array.from({ length: 5 }, (_, index) => {
+        const filled = index < Math.round(rating);
+        return (
+          <svg
+            key={index}
+            className={`${sizeClass} ${filled ? "text-amber-400" : "text-gray-200"}`}
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        );
+      })}
     </span>
+  );
+}
+
+function RatingInput({ value, onChange, themeColor }) {
+  return (
+    <div
+      className="flex items-center gap-1"
+      role="radiogroup"
+      aria-label="Calificacion"
+    >
+      {Array.from({ length: 5 }, (_, index) => {
+        const rating = index + 1;
+        const active = rating <= Number(value || 0);
+        return (
+          <button
+            key={rating}
+            type="button"
+            role="radio"
+            aria-checked={Number(value) === rating}
+            aria-label={`${rating} estrella${rating === 1 ? "" : "s"}`}
+            onClick={() => onChange(rating)}
+            className="p-1 rounded-lg transition-transform hover:scale-110 focus:outline-none focus:ring-2"
+            style={{
+              color: active ? "#f59e0b" : "#d1d5db",
+              "--tw-ring-color": `${themeColor}40`,
+            }}
+          >
+            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -64,9 +111,18 @@ export default function SellerProfile() {
   const [currentUser, setCurrentUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, reset } = useForm({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    control,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(reviewSchema),
     defaultValues: { rating: 5, comment: "" },
   });
+  const selectedRating = useWatch({ control, name: "rating" });
 
   useEffect(() => {
     async function fetchData() {
@@ -108,7 +164,7 @@ export default function SellerProfile() {
           .order("created_at", { ascending: false });
 
         if (revError) {
-          console.error("Error cargando resenas:", revError);
+          console.error("Error cargando reseñas:", revError);
           const { data: fallbackReviews } = await supabase
             .from("reviews")
             .select("*")
@@ -130,12 +186,12 @@ export default function SellerProfile() {
   useEffect(() => {
     if (loading) return;
     const title = seller
-      ? `${seller.company_name || `${seller.first_name} ${seller.last_name}`} - ${CONFIG.logo_image}`
-      : `${CONFIG.logo_image} - Vendedores`;
+      ? `${seller.company_name || `${seller.first_name} ${seller.last_name}`} - ${CONFIG.storeName}`
+      : `${CONFIG.storeName} - Vendedores`;
     const description =
       seller?.bio ||
       seller?.niche ||
-      `Conoce a ${seller?.company_name || seller?.first_name} en ${CONFIG.logo_image}`;
+      `Conoce a ${seller?.company_name || seller?.first_name} en ${CONFIG.storeName}`;
     const image = seller?.avatar_url || "/media/logo/icono_upiti.webp";
 
     const upsertMeta = (attr, name, content) => {
@@ -162,26 +218,36 @@ export default function SellerProfile() {
 
   const onSubmitReview = async (data) => {
     if (!currentUser)
-      return addToast("Debes iniciar sesion para dejar una resena.", "warning");
+      return addToast("Debes iniciar sesión para dejar una reseña.", "warning");
     setSubmitting(true);
 
-    const { error } = await supabase.from("reviews").insert([
-      {
-        reviewer_id: currentUser.id,
-        seller_id: id,
-        rating: Number(data.rating),
-        comment: data.comment,
-      },
-    ]);
+    const payload = {
+      reviewer_id: currentUser.id,
+      seller_id: id,
+      rating: Number(data.rating),
+      comment: data.comment.trim(),
+    };
+
+    const { data: insertedReview, error } = await supabase
+      .from("reviews")
+      .insert([payload])
+      .select(
+        `*, reviewer:profiles!reviewer_id(first_name, last_name, avatar_url)`,
+      )
+      .single();
 
     if (error) {
-      addToast("Error al enviar resena: " + error.message, "error");
+      addToast("Error al enviar reseña: " + error.message, "error");
     } else {
-      addToast("Resena enviada con exito.", "success");
-      reset();
-      window.location.reload();
+      addToast("Reseña publicada con éxito.", "success");
+      setReviews((prev) => [insertedReview || payload, ...prev]);
+      reset({ rating: 5, comment: "" });
     }
     setSubmitting(false);
+  };
+
+  const handleRatingChange = (rating) => {
+    setValue("rating", rating, { shouldDirty: true, shouldValidate: true });
   };
 
   if (loading) return <LoadingSkeleton />;
@@ -350,7 +416,7 @@ export default function SellerProfile() {
                   <span className="text-sm font-bold text-gray-700">
                     {reviews.length}
                   </span>
-                  <span className="text-xs text-gray-400">resenas</span>
+                  <span className="text-xs text-gray-400">reseñas</span>
                 </div>
               </div>
             </div>
@@ -487,39 +553,49 @@ export default function SellerProfile() {
           )}
 
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
-              Resenas
-            </h3>
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h3 className="text-lg font-black text-gray-900">
+                  Reseñas del vendedor
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Compartí tu experiencia para ayudar a otros compradores.
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-2xl font-black text-gray-900">
+                  {ratingDisplay || "-"}
+                </p>
+                <StarRating rating={averageRating} />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  {reviews.length} reseña{reviews.length === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
 
             {currentUser && currentUser.id !== id && (
               <form
                 onSubmit={handleSubmit(onSubmitReview)}
                 className="mb-5 pb-5 border-b border-gray-100"
               >
-                <h4 className="font-bold text-sm mb-3">Dejar una resena</h4>
-                <select
-                  {...register("rating")}
-                  className="w-full mb-3 px-4 py-3 sm:py-2.5 rounded-xl border border-gray-200 outline-none text-sm focus:ring-2 transition-all min-h-[44px] sm:min-h-0"
-                  style={{ focusBorderColor: themeColor }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = themeColor;
-                    e.currentTarget.style.boxShadow = `0 0 0 2px ${themeColor}20`;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "";
-                    e.currentTarget.style.boxShadow = "";
-                  }}
-                >
-                  <option value={5}>????? (5/5)</option>
-                  <option value={4}>????? (4/5)</option>
-                  <option value={3}>????? (3/5)</option>
-                  <option value={2}>????? (2/5)</option>
-                  <option value={1}>????? (1/5)</option>
-                </select>
+                <h4 className="font-bold text-sm mb-3">Dejar una reseña</h4>
+                <input type="hidden" {...register("rating")} />
+                <div className="mb-3">
+                  <RatingInput
+                    value={selectedRating}
+                    onChange={handleRatingChange}
+                    themeColor={themeColor}
+                  />
+                  {errors.rating && (
+                    <p className="text-red-500 text-xs mt-1 font-medium">
+                      {errors.rating.message}
+                    </p>
+                  )}
+                </div>
                 <textarea
-                  {...register("comment", { required: true })}
-                  placeholder="Escribe tu experiencia..."
-                  className="w-full px-4 py-3 sm:py-2.5 rounded-xl border border-gray-200 outline-none text-sm h-24 sm:h-20 mb-3 resize-none transition-all"
+                  {...register("comment")}
+                  placeholder="Escribí tu experiencia con este vendedor..."
+                  className={`w-full px-4 py-3 sm:py-2.5 rounded-xl border outline-none text-sm h-24 sm:h-20 resize-none transition-all ${errors.comment ? "border-red-300" : "border-gray-200"}`}
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = themeColor;
                     e.currentTarget.style.boxShadow = `0 0 0 2px ${themeColor}20`;
@@ -529,6 +605,11 @@ export default function SellerProfile() {
                     e.currentTarget.style.boxShadow = "";
                   }}
                 />
+                {errors.comment && (
+                  <p className="text-red-500 text-xs mt-1 mb-3 font-medium">
+                    {errors.comment.message}
+                  </p>
+                )}
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -545,15 +626,40 @@ export default function SellerProfile() {
                     e.currentTarget.style.filter = "";
                   }}
                 >
-                  {submitting ? "Enviando..." : "Publicar resena"}
+                  {submitting ? "Enviando..." : "Publicar reseña"}
                 </motion.button>
               </form>
+            )}
+
+            {!currentUser && (
+              <div className="mb-5 p-4 rounded-2xl bg-gray-50 border border-gray-100 text-center">
+                <p className="text-sm font-bold text-gray-900">
+                  Iniciá sesión para dejar una reseña
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/login")}
+                  className="mt-3 px-4 py-2 rounded-xl text-white text-sm font-bold transition-all"
+                  style={{ backgroundColor: themeColor }}
+                >
+                  Ingresar
+                </button>
+              </div>
+            )}
+
+            {currentUser?.id === id && (
+              <div className="mb-5 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                <p className="text-sm text-gray-500">
+                  Este es tu perfil. Otros usuarios podrán dejarte reseñas acá.
+                </p>
+              </div>
             )}
 
             <div className="space-y-4">
               {reviews.length === 0 ? (
                 <p className="text-gray-400 text-sm text-center py-4">
-                  Nadie ha dejado una resena todavia.
+                  Todavía no hay reseñas. Sé el primero en compartir tu
+                  experiencia.
                 </p>
               ) : (
                 reviews.map((rev) => (
@@ -573,7 +679,8 @@ export default function SellerProfile() {
                       />
                       <div>
                         <h5 className="font-bold text-sm text-gray-900 leading-tight">
-                          {rev.reviewer?.first_name} {rev.reviewer?.last_name}
+                          {rev.reviewer?.first_name || "Usuario"}{" "}
+                          {rev.reviewer?.last_name || ""}
                         </h5>
                         <StarRating rating={rev.rating} />
                       </div>

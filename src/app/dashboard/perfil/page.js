@@ -258,7 +258,7 @@ export default function EditProfile() {
       setLoading(false);
     }
     loadProfile();
-  }, [router, reset]);
+  }, [addToast, router, reset]);
 
   const onSubmitProfile = async (formData) => {
     setSaving(true);

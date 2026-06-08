@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { registerSchema } from "../../lib/schemas";
@@ -228,14 +228,14 @@ export default function Register() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors },
   } = useForm({ resolver: zodResolver(registerSchema) });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
 
-  const password = watch("password");
+  const password = useWatch({ control, name: "password" });
 
   const onSubmit = async (data) => {
     setLoading(true);

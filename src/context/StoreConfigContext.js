@@ -8,12 +8,13 @@ const StoreConfigContext = createContext();
 
 export function StoreConfigProvider({ children }) {
   const [storeConfig, setStoreConfig] = useState({
-    logo_image: CONFIG.logo_image,
+    logo_image: CONFIG.logoUrl,
     logoUrl: CONFIG.logoUrl,
     heroImage: CONFIG.heroImage,
     mainColor: CONFIG.mainColor,
     currency: CONFIG.currency,
     whatsappNumber: CONFIG.whatsappNumber,
+    storeName: CONFIG.storeName,
     loaded: false,
   });
 
@@ -27,12 +28,13 @@ export function StoreConfigProvider({ children }) {
 
       if (data) {
         setStoreConfig({
-          logo_image: data.logo_image || CONFIG.logo_image,
+          logo_image: data.logo_image || CONFIG.logoUrl,
           logoUrl: data.logo_url || CONFIG.logoUrl,
           heroImage: data.hero_image || CONFIG.heroImage,
           mainColor: data.main_color || CONFIG.mainColor,
           currency: data.currency || CONFIG.currency,
           whatsappNumber: data.whatsapp_number || CONFIG.whatsappNumber,
+          storeName: data.store_name || CONFIG.storeName,
           loaded: true,
         });
       } else {

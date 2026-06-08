@@ -19,8 +19,6 @@ CREATE POLICY "Vendedores crean sus productos" ON public.products
   FOR INSERT WITH CHECK (auth.uid() = seller_id);
 
 DROP POLICY IF EXISTS "Vendedores actualizan sus productos" ON public.products;
-CREATE POLICY "Vendedores actualizan sus productos" ON public.products
-  FOR UPDATE USING (auth.uid() = seller_id);
 
 DROP POLICY IF EXISTS "Admins actualizan cualquier producto" ON public.products;
 CREATE POLICY "Admins actualizan cualquier producto" ON public.products
@@ -33,3 +31,7 @@ CREATE POLICY "Admins eliminan cualquier producto" ON public.products
   FOR DELETE USING (
     auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'admin')
   );
+
+DROP POLICY IF EXISTS "Vendedores eliminan sus propios productos" ON public.products;
+CREATE POLICY "Vendedores eliminan sus propios productos" ON public.products
+  FOR DELETE USING (auth.uid() = seller_id);
