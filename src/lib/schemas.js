@@ -56,6 +56,35 @@ export const productSchema = z.object({
   description: z.string().optional(),
 });
 
+export const profileSchema = z.object({
+  first_name: z.string().trim().min(1, "Requerido"),
+  last_name: z.string().trim().min(1, "Requerido"),
+  company_name: z.string().trim().min(1, "Requerido"),
+  whatsapp_region: z
+    .string()
+    .trim()
+    .regex(/^\d{1,4}$/, "Ej: 54"),
+  whatsapp_area: z
+    .string()
+    .trim()
+    .regex(/^\d{2,4}$/, "Ej: 381"),
+  whatsapp_number_local: z
+    .string()
+    .trim()
+    .regex(/^\d{6,8}$/, "Ej: 9999999"),
+  province: z.string().trim().min(1, "Requerido"),
+  city: z.string().trim().min(1, "Requerido"),
+  address: z.string().trim().optional(),
+  birthdate: z.string().optional(),
+  niche: z.string().trim().optional(),
+  social_links: z
+    .string()
+    .trim()
+    .url("URL inválida")
+    .optional()
+    .or(z.literal("")),
+});
+
 export const reviewSchema = z.object({
   rating: z.coerce.number().min(1).max(5),
   comment: z.string().min(1, "Escribí tu experiencia"),

@@ -277,24 +277,32 @@ export default function Register() {
 
     const whatsapp_number = `${data.whatsapp_region}${data.whatsapp_area}${data.whatsapp_number_local}`;
 
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({
-        first_name: data.first_name,
-        last_name: data.last_name,
-        company_name: data.company_name,
-        province: data.province,
-        city: data.city,
-        address: data.address,
-        whatsapp_number,
-        birthdate: data.birthdate,
-        niche: data.niche,
-        social_links: data.social_links,
-        avatar_url: avatarUrl,
-      })
-      .eq("id", auth.user.id);
+    let profileError = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 500));
+      const result = await supabase.from("profiles").upsert(
+        {
+          id: auth.user.id,
+          email: data.email,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          company_name: data.company_name,
+          province: data.province,
+          city: data.city,
+          address: data.address,
+          whatsapp_number,
+          birthdate: data.birthdate,
+          niche: data.niche,
+          social_links: data.social_links,
+          avatar_url: avatarUrl,
+        },
+        { onConflict: "id" },
+      );
+      profileError = result.error;
+      if (!profileError) break;
+    }
 
-    if (profileError) setError(profileError.message);
+    if (profileError) setError("Error al guardar el perfil. Intentá de nuevo.");
     else router.push("/dashboard");
 
     setLoading(false);

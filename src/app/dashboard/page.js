@@ -854,19 +854,50 @@ export default function Dashboard() {
     );
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-8 flex-1 animate-fade-in-up">
-      <h1 className="text-3xl font-black text-gray-900 mb-8 border-b pb-4">
-        Bienvenido,{" "}
-        <span className="text-emerald-600">
-          {profile?.first_name || profile?.company_name || "Administrador"}
-        </span>
-      </h1>
+    <motion.main
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="max-w-6xl mx-auto px-4 py-8 flex-1"
+    >
+      <div className="flex items-center justify-between mb-8 border-b pb-4">
+        <div className="flex items-center gap-4">
+          {profile?.role !== "admin" && (
+            <img
+              src={profile?.avatar_url || "https://placehold.co/48"}
+              alt=""
+              className="w-12 h-12 rounded-full object-cover border border-gray-100"
+            />
+          )}
+          <div>
+            <h1 className="text-3xl font-black text-gray-900">
+              Bienvenido,{" "}
+              <span className="text-emerald-600">
+                {profile?.first_name ||
+                  profile?.company_name ||
+                  "Administrador"}
+              </span>
+            </h1>
+            {profile?.company_name && (
+              <p className="text-sm text-gray-500">{profile.company_name}</p>
+            )}
+          </div>
+        </div>
+        {profile?.role !== "admin" && (
+          <Link
+            href="/dashboard/perfil"
+            className="text-sm font-bold text-emerald-600 hover:underline shrink-0"
+          >
+            Editar perfil →
+          </Link>
+        )}
+      </div>
 
       {profile?.role === "admin" ? (
         <AdminDashboard />
       ) : (
         <SellerDashboard user={user} />
       )}
-    </main>
+    </motion.main>
   );
 }

@@ -15,7 +15,7 @@ export default function Home() {
     async function loadProducts() {
       const { data } = await supabase
         .from("products")
-        .select("*, profiles(whatsapp_number, company_name)")
+        .select("*, profiles(whatsapp_number, company_name, avatar_url)")
         .eq("status", "approved")
         .order("id", { ascending: true });
       setProducts(data || []);
