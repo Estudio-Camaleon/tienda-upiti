@@ -16,7 +16,7 @@ function openWhatsApp(phone, product) {
 }
 
 export default function Hero({ products, loading }) {
-  const { logo_image, mainColor, heroImage, storeName } = useStoreConfig();
+  const { logoUrl, mainColor, heroImage, storeName } = useStoreConfig();
   const themeColor = mainColor || CONFIG.mainColor;
   const [user, setUser] = useState(null);
 
@@ -109,19 +109,16 @@ export default function Hero({ products, loading }) {
 
       <div className="relative px-6 sm:px-10 py-8 sm:py-12 lg:py-16 max-w-7xl mx-auto">
         <div className="text-center mb-6 sm:mb-8">
-          <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="flex items-center justify-center">
             <img
-              src={logo_image}
+              src={logoUrl}
               alt={storeName}
-              className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
+              className="w-40 h-40 object-contain"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.style.display = "none";
               }}
             />
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight">
-              {storeName}
-            </h1>
           </div>
           <p className="text-gray-600 text-sm sm:text-base mt-2 max-w-xl mx-auto font-medium">
             Descubrí productos únicos de emprendedores locales. Comprá directo

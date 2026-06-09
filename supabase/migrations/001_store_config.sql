@@ -1,7 +1,7 @@
 CREATE TABLE public.store_config (
   id BIGINT NOT NULL DEFAULT 1,
-  logo_image TEXT DEFAULT '/media/logo/icono_upiti.webp',
-  logo_url TEXT DEFAULT '/media/logo/logo_upiti.svg',
+  logo_image TEXT DEFAULT '/media/logo/logo_upiti.svg',
+  logo_url TEXT DEFAULT '/media/logo/icono_upiti.webp',
   whatsapp_number TEXT DEFAULT '',
   currency TEXT DEFAULT '$',
   hero_image TEXT DEFAULT '/media/portadas/portada_upiti.webp',

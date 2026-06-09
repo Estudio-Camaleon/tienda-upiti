@@ -10,8 +10,8 @@ CREATE POLICY "Vendedores eliminan sus propios productos" ON public.products
 
 -- Ensure future store_config rows use absolute public asset paths.
 ALTER TABLE public.store_config
-  ALTER COLUMN logo_image SET DEFAULT '/media/logo/icono_upiti.webp',
-  ALTER COLUMN logo_url SET DEFAULT '/media/logo/logo_upiti.svg',
+  ALTER COLUMN logo_image SET DEFAULT '/media/logo/logo_upiti.svg',
+  ALTER COLUMN logo_url SET DEFAULT '/media/logo/icono_upiti.webp',
   ALTER COLUMN hero_image SET DEFAULT '/media/portadas/portada_upiti.webp';
 
 -- Normalize legacy relative paths stored before this migration.

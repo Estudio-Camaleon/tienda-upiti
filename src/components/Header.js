@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Header() {
   const router = useRouter();
-  const { logoUrl } = useStoreConfig();
+  const { logo_image } = useStoreConfig();
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -40,9 +40,9 @@ export default function Header() {
           className="flex items-center gap-3 hover:scale-105 transition-transform cursor-pointer"
           onClick={() => setMenuOpen(false)}
         >
-          {logoUrl && (
+          {logo_image && (
             <img
-              src={logoUrl}
+              src={logo_image}
               alt="Logo"
               className="h-10 w-auto object-contain"
             />

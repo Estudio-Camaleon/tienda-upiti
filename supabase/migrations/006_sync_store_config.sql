@@ -1,12 +1,12 @@
 -- Ensure store_config has the expected columns used by the app
 ALTER TABLE public.store_config
-  ADD COLUMN IF NOT EXISTS logo_url text DEFAULT '/media/logo/logo_upiti.svg',
+  ADD COLUMN IF NOT EXISTS logo_url text DEFAULT '/media/logo/icono_upiti.webp',
   ADD COLUMN IF NOT EXISTS whatsapp_number text DEFAULT ''::text,
   ADD COLUMN IF NOT EXISTS currency text DEFAULT '$'::text,
   ADD COLUMN IF NOT EXISTS hero_image text DEFAULT '/media/portadas/portada_upiti.webp',
   ADD COLUMN IF NOT EXISTS main_color text DEFAULT '#ed355d'::text,
   ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT timezone('utc'::text, now()),
-  ADD COLUMN IF NOT EXISTS logo_image text DEFAULT '/media/logo/icono_upiti.webp'::text;
+  ADD COLUMN IF NOT EXISTS logo_image text DEFAULT '/media/logo/logo_upiti.svg'::text;
 
 -- Ensure single-row constraint (id = 1) exists
 DO $$

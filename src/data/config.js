@@ -1,6 +1,6 @@
 export const CONFIG = {
   storeName: process.env.NEXT_PUBLIC_STORE_NAME || "Upiti",
-  logoUrl: "/media/logo/logo_upiti.svg",
+  logoUrl: "/media/logo/favicon.svg",
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "",
   currency: process.env.NEXT_PUBLIC_CURRENCY || "$",
   heroImage: "/media/portadas/portada_upiti.webp",

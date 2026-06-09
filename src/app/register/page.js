@@ -7,8 +7,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { registerSchema } from "../../lib/schemas";
-import { onlyDigits, concatParts } from "../../lib/phone";
-import { generateBaseSlug, generateUniqueSlug } from "../../lib/slug";
+import { onlyDigits } from "../../lib/phone";
 
 function sanitize(obj) {
   for (const key of Object.keys(obj)) {
@@ -227,7 +226,6 @@ export default function Register() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(null);
 
   useEffect(() => {
     const handler = (e) => {
@@ -385,68 +383,12 @@ export default function Register() {
 
             <hr className="border-gray-100" />
 
-            <section>
-              <div className="flex items-center gap-2 mb-5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
-                  2
-                </div>
-                <h3 className="text-lg font-black text-gray-900">
-                  Foto de perfil
-                </h3>
-              </div>
-              <div className="flex items-center gap-6">
-                <div className="shrink-0">
-                  {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt="Preview"
-                      className="w-20 h-20 rounded-2xl object-cover border border-gray-200"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400">
-                      <svg
-                        className="w-8 h-8"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Subí tu foto
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    {...register("avatar")}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) setAvatarPreview(URL.createObjectURL(file));
-                    }}
-                    className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-                  />
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    Opcional. PNG o JPG, máximo 5 MB.
-                  </p>
-                </div>
-              </div>
-            </section>
-
             <hr className="border-gray-100" />
 
             <section>
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
-                  3
+                  2
                 </div>
                 <h3 className="text-lg font-black text-gray-900">
                   Datos personales
@@ -480,7 +422,7 @@ export default function Register() {
             <section>
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
-                  4
+                  3
                 </div>
                 <h3 className="text-lg font-black text-gray-900">
                   Tu emprendimiento
@@ -521,7 +463,7 @@ export default function Register() {
             <section>
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
-                  5
+                  4
                 </div>
                 <h3 className="text-lg font-black text-gray-900">Envíos</h3>
               </div>
@@ -575,7 +517,7 @@ export default function Register() {
             <section>
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
-                  6
+                  5
                 </div>
                 <h3 className="text-lg font-black text-gray-900">Contacto</h3>
                 <span className="text-[11px] text-gray-400 font-medium ml-auto">
@@ -637,7 +579,7 @@ export default function Register() {
             <section>
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
-                  7
+                  5
                 </div>
                 <h3 className="text-lg font-black text-gray-900">Legales</h3>
               </div>
