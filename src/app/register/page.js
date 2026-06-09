@@ -237,6 +237,30 @@ export default function Register() {
       return;
     }
 
+    // No session means email confirmation is required
+    if (!auth.session) {
+      const pendingProfile = {
+        email: data.email,
+        first_name: data.first_name || "",
+        last_name: data.last_name || "",
+        company_name: data.company_name || "",
+        whatsapp_region: onlyDigits(data.whatsapp_region) || "",
+        whatsapp_area: onlyDigits(data.whatsapp_area) || "",
+        whatsapp_number_local: onlyDigits(data.whatsapp_number_local) || "",
+        delivery_option: data.delivery_option || "",
+        niche: data.niche || "",
+        social_links: data.social_links || "",
+      };
+      try {
+        localStorage.setItem("pending_profile", JSON.stringify(pendingProfile));
+      } catch (e) {}
+      setError(
+        "Revisá tu casilla de correo y confirmá tu cuenta. Tus datos se guardaron temporalmente.",
+      );
+      setLoading(false);
+      return;
+    }
+
     let avatarUrl = null;
     if (data.avatar && data.avatar[0]) {
       const file = data.avatar[0];
