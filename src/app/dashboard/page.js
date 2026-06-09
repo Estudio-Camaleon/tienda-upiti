@@ -444,7 +444,7 @@ function SellerDashboard({ user }) {
                       <div className="pt-1.5 flex items-center gap-3">
                         {p.status === "approved" && (
                           <Link
-                            href={`/producto/${p.id}`}
+                            href={`/producto/${p.slug || p.id}`}
                             className="text-xs font-bold text-emerald-600 hover:text-emerald-700"
                           >
                             Ver en tienda
@@ -826,15 +826,26 @@ function AdminDashboard() {
   };
 
   const handleToggleVerify = async (userId, current) => {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ is_verified: !current })
-      .eq("id", userId);
-    if (error) {
-      addToast("Error al actualizar verificación: " + error.message, "error");
-      return;
+    const next = !current;
+    try {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, is_verified: next } : u)),
+      );
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_verified: next })
+        .eq("id", userId);
+      if (error) throw error;
+      addToast(
+        next ? "Usuario verificado." : "Verificación quitada.",
+        "success",
+      );
+    } catch (err) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, is_verified: current } : u)),
+      );
+      addToast("Error al actualizar verificación: " + err.message, "error");
     }
-    reload();
   };
 
   const pendingProducts = products.filter((p) => p.status === "pending");
@@ -1074,7 +1085,7 @@ function AdminDashboard() {
               <div className="flex items-center gap-2 mt-3 pt-2 border-t border-gray-50">
                 {p.status === "approved" && (
                   <Link
-                    href={`/producto/${p.id}`}
+                    href={`/producto/${p.slug || p.id}`}
                     className="text-xs font-bold text-emerald-600 hover:text-emerald-700"
                   >
                     Ver en tienda
@@ -1188,7 +1199,7 @@ export default function Dashboard() {
             <button
               onClick={() => {
                 navigator.clipboard.writeText(
-                  `${window.location.origin}/vendedor/${user.id}`,
+                  `${window.location.origin}/vendedor/${profile?.slug || user.id}`,
                 );
                 addToast("Enlace copiado al portapapeles.", "success");
               }}

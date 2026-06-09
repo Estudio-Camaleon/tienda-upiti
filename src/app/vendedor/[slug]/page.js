@@ -98,7 +98,7 @@ function LoadingSkeleton() {
 }
 
 export default function SellerProfile() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const router = useRouter();
   const { mainColor } = useStoreConfig();
   const themeColor = mainColor || CONFIG.mainColor;
@@ -124,10 +124,30 @@ export default function SellerProfile() {
   });
   const selectedRating = useWatch({ control, name: "rating" });
 
+  async function findProfile(param) {
+    let { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("slug", param)
+      .maybeSingle();
+    if (data) return data;
+    const uuidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRe.test(param)) {
+      const { data: byId } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", param)
+        .maybeSingle();
+      if (byId) return byId;
+    }
+    return null;
+  }
+
   useEffect(() => {
     async function fetchData() {
       try {
-        if (!id || id === "null" || id === "undefined") {
+        if (!slug || slug === "null" || slug === "undefined") {
           setLoading(false);
           return;
         }
@@ -137,41 +157,39 @@ export default function SellerProfile() {
         } = await supabase.auth.getSession();
         setCurrentUser(session?.user || null);
 
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (profileError) console.error("Error cargando perfil:", profileError);
+        const profileData = await findProfile(slug);
+        if (!profileData) {
+          setLoading(false);
+          return;
+        }
         setSeller(profileData);
 
-        const { data: productsData, error: prodError } = await supabase
-          .from("products")
-          .select("*, profiles(whatsapp_number, company_name, avatar_url)")
-          .eq("seller_id", id)
-          .eq("status", "approved");
+        const [productsData, reviewsData] = await Promise.all([
+          supabase
+            .from("products")
+            .select(
+              "*, profiles(whatsapp_number, company_name, avatar_url, slug)",
+            )
+            .eq("seller_id", profileData.id)
+            .eq("status", "approved"),
+          supabase
+            .from("reviews")
+            .select(
+              `*, reviewer:profiles!reviewer_id(first_name, last_name, avatar_url)`,
+            )
+            .eq("seller_id", profileData.id)
+            .order("created_at", { ascending: false }),
+        ]);
 
-        if (prodError) console.error("Error cargando productos:", prodError);
-        setProducts(productsData || []);
-
-        const { data: reviewsData, error: revError } = await supabase
-          .from("reviews")
-          .select(
-            `*, reviewer:profiles!reviewer_id(first_name, last_name, avatar_url)`,
-          )
-          .eq("seller_id", id)
-          .order("created_at", { ascending: false });
-
-        if (revError) {
-          console.error("Error cargando reseñas:", revError);
+        setProducts(productsData.data || []);
+        if (reviewsData.error) {
           const { data: fallbackReviews } = await supabase
             .from("reviews")
             .select("*")
-            .eq("seller_id", id);
+            .eq("seller_id", profileData.id);
           setReviews(fallbackReviews || []);
         } else {
-          setReviews(reviewsData || []);
+          setReviews(reviewsData.data || []);
         }
       } catch (err) {
         console.error("Error de conexion:", err);
@@ -180,7 +198,7 @@ export default function SellerProfile() {
       }
     }
     fetchData();
-  }, [id]);
+  }, [slug]);
 
   // update meta tags client-side when seller loads
   useEffect(() => {
@@ -223,7 +241,7 @@ export default function SellerProfile() {
 
     const payload = {
       reviewer_id: currentUser.id,
-      seller_id: id,
+      seller_id: seller.id,
       rating: Number(data.rating),
       comment: data.comment.trim(),
     };
@@ -616,7 +634,7 @@ export default function SellerProfile() {
               </div>
             </div>
 
-            {currentUser && currentUser.id !== id && (
+            {currentUser && currentUser.id !== seller?.id && (
               <form
                 onSubmit={handleSubmit(onSubmitReview)}
                 className="mb-5 pb-5 border-b border-gray-100"
@@ -691,7 +709,7 @@ export default function SellerProfile() {
               </div>
             )}
 
-            {currentUser?.id === id && (
+            {currentUser?.id === seller?.id && (
               <div className="mb-5 p-4 rounded-2xl bg-gray-50 border border-gray-100">
                 <p className="text-sm text-gray-500">
                   Este es tu perfil. Otros usuarios podrán dejarte reseñas acá.

@@ -11,6 +11,7 @@ import {
   concatParts,
   splitWhatsAppNumber,
 } from "../../../lib/phone";
+import { generateBaseSlug, generateUniqueSlug } from "../../../lib/slug";
 import { useToast } from "../../../context/ToastContext";
 
 const countries = [
@@ -320,6 +321,13 @@ export default function EditProfile() {
 
     if (error) addToast("Error al guardar: " + error.message, "error");
     else {
+      const baseSlug = generateBaseSlug(
+        formData.first_name,
+        formData.last_name,
+        formData.company_name,
+      );
+      const slug = await generateUniqueSlug(supabase, "profiles", baseSlug);
+      await supabase.from("profiles").update({ slug }).eq("id", user?.id);
       addToast("Perfil actualizado con éxito.", "success");
       setCurrentAvatar(newAvatarUrl);
       setCurrentBanner(newBannerUrl);

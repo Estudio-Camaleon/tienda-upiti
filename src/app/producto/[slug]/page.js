@@ -7,6 +7,7 @@ import { supabase } from "../../../lib/supabase";
 import { CONFIG } from "../../../data/config";
 import { useStoreConfig } from "../../../context/StoreConfigContext";
 import ProductCard from "../../../components/ProductCard";
+import ShareButtons from "../../../components/ShareButtons";
 
 function openWhatsApp(phone, product) {
   const message = encodeURIComponent(
@@ -82,7 +83,7 @@ function SellerCard({ seller, themeColor }) {
         </Link>
       )}
       <Link
-        href={`/vendedor/${seller.id}`}
+        href={`/vendedor/${seller.slug || seller.id}`}
         className="mt-2 block text-center text-xs font-bold transition-colors"
         style={{ color: themeColor }}
       >
@@ -93,7 +94,7 @@ function SellerCard({ seller, themeColor }) {
 }
 
 export default function ProductDetail() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const router = useRouter();
   const { mainColor } = useStoreConfig();
   const themeColor = mainColor || CONFIG.mainColor;
@@ -102,15 +103,31 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState([]);
 
-  useEffect(() => {
-    async function fetchProduct() {
-      const { data } = await supabase
+  async function findProduct(param) {
+    let { data } = await supabase
+      .from("products")
+      .select("*, profiles(*)")
+      .eq("slug", param)
+      .maybeSingle();
+    if (data) return data;
+    const uuidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRe.test(param)) {
+      const { data: byId } = await supabase
         .from("products")
         .select("*, profiles(*)")
-        .eq("id", id)
-        .single();
+        .eq("id", param)
+        .maybeSingle();
+      if (byId) return byId;
+    }
+    return null;
+  }
 
-      if (data && data.status !== "approved") {
+  useEffect(() => {
+    async function fetchProduct() {
+      const data = await findProduct(slug);
+
+      if (!data || data.status !== "approved") {
         setProduct(null);
       } else {
         setProduct(data);
@@ -118,7 +135,9 @@ export default function ProductDetail() {
         if (data?.category) {
           const { data: related } = await supabase
             .from("products")
-            .select("*, profiles(whatsapp_number, company_name, avatar_url)")
+            .select(
+              "*, profiles(whatsapp_number, company_name, avatar_url, slug)",
+            )
             .eq("category", data.category)
             .eq("status", "approved")
             .neq("id", data.id)
@@ -129,7 +148,7 @@ export default function ProductDetail() {
       setLoading(false);
     }
     fetchProduct();
-  }, [id]);
+  }, [slug]);
 
   // Update meta tags dynamically on the client once product is loaded
   useEffect(() => {
@@ -258,6 +277,14 @@ export default function ProductDetail() {
                     "https://placehold.co/600x600/eeeeee/999999?text=Sin+Imagen";
                 }}
               />
+              <ShareButtons
+                url={
+                  typeof window !== "undefined"
+                    ? `${window.location.origin}/producto/${product.slug || product.id}`
+                    : ""
+                }
+                title={`${product.name} - ${CONFIG.storeName}`}
+              />
             </div>
 
             <div className="p-6 sm:p-8">
@@ -325,24 +352,7 @@ export default function ProductDetail() {
                 )}
               </div>
             </div>
-
-            {relatedProducts.length > 0 && (
-              <section className="mt-10">
-                <h2 className="text-xl font-black text-gray-900 mb-4">
-                  Productos relacionados
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {relatedProducts.map((p, i) => (
-                    <ProductCard key={p.id} product={p} index={i} />
-                  ))}
-                </div>
-              </section>
-            )}
           </div>
-
-          {relatedProducts.length > 0 && (
-            <section className="mt-10">{/* already above */}</section>
-          )}
         </div>
 
         <aside className="space-y-4">
@@ -384,6 +394,19 @@ export default function ProductDetail() {
           </div>
         </aside>
       </div>
+
+      {relatedProducts.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-xl font-black text-gray-900 mb-4">
+            Productos relacionados
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {relatedProducts.map((p, i) => (
+              <ProductCard key={p.id} product={p} index={i} />
+            ))}
+          </div>
+        </section>
+      )}
     </motion.main>
   );
 }

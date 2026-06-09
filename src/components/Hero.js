@@ -142,7 +142,7 @@ export default function Hero({ products, loading }) {
                     >
                       <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/80 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group h-full">
                         <Link
-                          href={`/producto/${product.id}`}
+                          href={`/producto/${product.slug || product.id}`}
                           className="relative pt-[60%] bg-gray-100 overflow-hidden block"
                         >
                           <img
@@ -163,7 +163,9 @@ export default function Hero({ products, loading }) {
                           </div>
                         </Link>
                         <div className="p-4 sm:p-5 flex flex-col gap-2">
-                          <Link href={`/producto/${product.id}`}>
+                          <Link
+                            href={`/producto/${product.slug || product.id}`}
+                          >
                             <h3
                               className="font-bold text-gray-900 text-sm sm:text-base leading-tight line-clamp-1 transition-colors"
                               style={{ "--hover-color": themeColor }}

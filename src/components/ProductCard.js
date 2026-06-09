@@ -21,7 +21,7 @@ export default function ProductCard({ product, index }) {
       className="product-card bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col group"
     >
       <Link
-        href={`/producto/${product.id}`}
+        href={`/producto/${product.slug || product.id}`}
         className="relative pt-[80%] bg-gray-100 overflow-hidden block"
       >
         <img
@@ -42,7 +42,7 @@ export default function ProductCard({ product, index }) {
             </span>
             {product.seller_id && (
               <Link
-                href={`/vendedor/${product.seller_id}`}
+                href={`/vendedor/${product.profiles?.slug || product.seller_id}`}
                 className="text-[11px] sm:text-[10px] font-bold text-gray-400 hover:text-emerald-600 underline py-1 sm:py-0"
               >
                 Ver Tienda 🏪
@@ -50,7 +50,10 @@ export default function ProductCard({ product, index }) {
             )}
           </div>
 
-          <Link href={`/producto/${product.id}`} className="block">
+          <Link
+            href={`/producto/${product.slug || product.id}`}
+            className="block"
+          >
             <h4 className="font-bold text-gray-900 text-base line-clamp-1 group-hover:text-emerald-700 transition-colors">
               {product.name}
             </h4>
@@ -64,7 +67,7 @@ export default function ProductCard({ product, index }) {
           <p className="truncate text-[11px] text-gray-400 -mt-2">
             Vendido por{" "}
             <Link
-              href={`/vendedor/${product.seller_id}`}
+              href={`/vendedor/${product.profiles?.slug || product.seller_id}`}
               className="font-bold text-gray-500 hover:text-emerald-600"
             >
               {product.profiles?.company_name || "el vendedor"}

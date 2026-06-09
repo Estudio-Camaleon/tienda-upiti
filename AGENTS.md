@@ -29,8 +29,8 @@ npm run clean        # rimraf .next (fixes stale-cache bugs)
 | `/register` | `src/app/register/page.js` — multi-step form |
 | `/dashboard` | `src/app/dashboard/page.js` — seller panel + admin panel + add product form |
 | `/dashboard/perfil` | `src/app/dashboard/perfil/page.js` — profile edit |
-| `/producto/[id]` | `src/app/producto/[id]/page.js` — public product detail |
-| `/vendedor/[id]` | `src/app/vendedor/[id]/page.js` — public seller profile + reviews |
+| `/producto/[slug]` | `src/app/producto/[slug]/page.js` — public product detail (backward compat con UUID) |
+| `/vendedor/[slug]` | `src/app/vendedor/[slug]/page.js` — public seller profile + reviews (backward compat con UUID) |
 | `/terminos` | `src/app/terminos/page.js` |
 | `/privacidad` | `src/app/privacidad/page.js` |
 
@@ -47,7 +47,7 @@ npm run clean        # rimraf .next (fixes stale-cache bugs)
 - **Rating**: DB reviews use 1–5 scale; display max is 5.5 (percentage = avg / 5.5 × 100)
 
 ## Database Migrations
-- All in `supabase/migrations/`, numbered `001_*` to `011_*`
+- All in `supabase/migrations/`, numbered `001_*` to `012_*`
 - Must be applied **in order** via Supabase SQL Editor
 - Key tables: `profiles`, `products`, `reviews`, `store_config`
 - Admin role set via SQL: `UPDATE public.profiles SET role = 'admin', is_verified = true WHERE email = '...'`

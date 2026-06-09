@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { registerSchema } from "../../lib/schemas";
 import { onlyDigits, concatParts } from "../../lib/phone";
+import { generateBaseSlug, generateUniqueSlug } from "../../lib/slug";
 
 function sanitize(obj) {
   for (const key of Object.keys(obj)) {
@@ -313,6 +314,13 @@ export default function Register() {
       try {
         localStorage.removeItem("pending_profile");
       } catch (e) {}
+      const baseSlug = generateBaseSlug(
+        data.first_name,
+        data.last_name,
+        data.company_name,
+      );
+      const slug = await generateUniqueSlug(supabase, "profiles", baseSlug);
+      await supabase.from("profiles").update({ slug }).eq("id", auth.user.id);
       router.push("/dashboard");
     }
 
