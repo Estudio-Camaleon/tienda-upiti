@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { productSchema } from "../../lib/schemas";
+import { slugify, generateUniqueSlug } from "../../lib/slug";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmContext";
@@ -200,6 +201,9 @@ function SellerDashboard({ user }) {
       imageUrl = urlData.publicUrl;
     }
 
+    const productSlug = slugify(data.name) || "producto";
+    const slug = await generateUniqueSlug(supabase, "products", productSlug);
+
     const { error: insertError } = await supabase.from("products").insert([
       {
         name: data.name,
@@ -210,6 +214,7 @@ function SellerDashboard({ user }) {
         image: imageUrl,
         seller_id: user.id,
         status: "pending",
+        slug,
       },
     ]);
 

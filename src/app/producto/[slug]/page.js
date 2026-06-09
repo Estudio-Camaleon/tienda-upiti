@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { supabase } from "../../../lib/supabase";
 import { CONFIG } from "../../../data/config";
 import { useStoreConfig } from "../../../context/StoreConfigContext";
+import { concatParts } from "../../../lib/phone";
 import ProductCard from "../../../components/ProductCard";
 import ShareButtons from "../../../components/ShareButtons";
 
@@ -39,6 +40,12 @@ function LoadingSkeleton() {
 
 function SellerCard({ seller, themeColor }) {
   if (!seller) return null;
+
+  // NUEVO: Limpiar nombre antes de renderizar
+  const nameParts = [seller.first_name, seller.last_name].filter(Boolean);
+  const fullName = nameParts.length > 0 ? nameParts.join(" ") : null;
+  const displayName = seller.company_name || fullName || "Vendedor Anónimo";
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
       <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">
@@ -47,12 +54,13 @@ function SellerCard({ seller, themeColor }) {
       <div className="flex items-center gap-3">
         <img
           src={seller.avatar_url || "https://placehold.co/48"}
-          alt={seller.company_name}
+          alt={displayName}
           className="w-12 h-12 rounded-full object-cover border border-gray-100"
         />
         <div className="min-w-0 flex-1">
+          {/* NUEVO: Usar variable limpia */}
           <p className="font-bold text-gray-900 text-sm truncate">
-            {seller.company_name || `${seller.first_name} ${seller.last_name}`}
+            {displayName}
           </p>
           {seller.delivery_option &&
             (() => {
@@ -110,15 +118,20 @@ export default function ProductDetail() {
   const [relatedProducts, setRelatedProducts] = useState([]);
 
   async function findProduct(param) {
+    // Primero buscar por slug
     let { data } = await supabase
       .from("products")
       .select("*, profiles(*)")
       .eq("slug", param)
       .maybeSingle();
     if (data) return data;
+
+    // Revisar si es número o si es UUID
+    const esNumero = /^\d+$/.test(param);
     const uuidRe =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRe.test(param)) {
+
+    if (esNumero || uuidRe.test(param)) {
       const { data: byId } = await supabase
         .from("products")
         .select("*, profiles(*)")
@@ -131,25 +144,28 @@ export default function ProductDetail() {
 
   useEffect(() => {
     async function fetchProduct() {
-      const data = await findProduct(slug);
+      try {
+        const data = await findProduct(slug);
+        if (!data || data.status !== "approved") {
+          setProduct(null);
+        } else {
+          setProduct(data);
 
-      if (!data || data.status !== "approved") {
-        setProduct(null);
-      } else {
-        setProduct(data);
-
-        if (data?.category) {
-          const { data: related } = await supabase
-            .from("products")
-            .select(
-              "*, profiles(whatsapp_number, company_name, avatar_url, slug)",
-            )
-            .eq("category", data.category)
-            .eq("status", "approved")
-            .neq("id", data.id)
-            .limit(4);
-          setRelatedProducts(related || []);
+          if (data?.category) {
+            const { data: related } = await supabase
+              .from("products")
+              .select(
+                "*, profiles(whatsapp_number, company_name, avatar_url, slug)",
+              )
+              .eq("category", data.category)
+              .eq("status", "approved")
+              .neq("id", data.id)
+              .limit(4);
+            setRelatedProducts(related || []);
+          }
         }
+      } catch (err) {
+        console.error("Error al cargar producto:", err);
       }
       setLoading(false);
     }

@@ -131,9 +131,12 @@ export default function SellerProfile() {
       .eq("slug", param)
       .maybeSingle();
     if (data) return data;
+
+    const esNumero = /^\d+$/.test(param);
     const uuidRe =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRe.test(param)) {
+
+    if (esNumero || uuidRe.test(param)) {
       const { data: byId } = await supabase
         .from("profiles")
         .select("*")
@@ -360,7 +363,10 @@ export default function SellerProfile() {
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <h1 className="break-words text-2xl sm:text-3xl font-black text-gray-900">
                   {seller.company_name ||
-                    `${seller.first_name} ${seller.last_name}`}
+                    [seller.first_name, seller.last_name]
+                      .filter(Boolean)
+                      .join(" ") ||
+                    "Vendedor"}
                 </h1>
                 {seller.is_verified && (
                   <span
