@@ -562,9 +562,6 @@ export default function Register() {
                   5
                 </div>
                 <h3 className="text-lg font-black text-gray-900">Envíos</h3>
-                <span className="text-[11px] text-gray-400 font-medium ml-auto">
-                  Opcional
-                </span>
               </div>
               <p className="text-sm text-gray-500 mb-4">
                 ¿Cómo entregás tus productos?

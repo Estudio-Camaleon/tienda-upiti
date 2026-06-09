@@ -30,7 +30,9 @@ export const registerSchema = z
       .string()
       .trim()
       .regex(/^\d{6,8}$/, "Ej: 9999999"),
-    delivery_option: z.enum(["delivery", "pickup"]).optional(),
+    delivery_option: z.enum(["delivery", "pickup"], {
+      required_error: "Seleccioná cómo entregás tus productos",
+    }),
     niche: z.string().trim().max(100).optional(),
     social_links: z
       .string()
@@ -78,7 +80,9 @@ export const profileSchema = z.object({
     .string()
     .trim()
     .regex(/^\d{6,8}$/, "Ej: 9999999"),
-  delivery_option: z.enum(["delivery", "pickup"]).optional(),
+  delivery_option: z.enum(["delivery", "pickup"], {
+    required_error: "Seleccioná cómo entregás tus productos",
+  }),
   niches: z.array(z.string().trim().max(100)).optional(),
   socialLinks: z
     .array(
