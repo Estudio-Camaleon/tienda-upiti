@@ -243,13 +243,27 @@ export default function Register() {
   const onSubmit = async (data) => {
     setLoading(true);
     setError(null);
-
     sanitize(data);
 
+    // Clean data first
+    const cleanData = {
+      first_name: data.first_name || "",
+      last_name: data.last_name || "",
+      company_name: data.company_name || "",
+      whatsapp_region: onlyDigits(data.whatsapp_region) || null,
+      whatsapp_area: onlyDigits(data.whatsapp_area) || null,
+      whatsapp_number_local: onlyDigits(data.whatsapp_number_local) || null,
+      delivery_option: data.delivery_option?.join(",") || null,
+      niche: data.niche || "",
+      social_links: data.social_links || "",
+    };
+
+    // Send to Supabase Auth
     const { data: auth, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
+        data: cleanData, // Data saves here until confirm
         emailRedirectTo: `${
           process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
         }/login`,
@@ -258,127 +272,44 @@ export default function Register() {
 
     if (authError) {
       if (authError.message?.toLowerCase().includes("already registered")) {
-        setError("Este correo ya está registrado. Iniciá sesión.");
+        setError("Correo registrado. Iniciá sesión.");
       } else {
-        setError(
-          "No pudimos crear tu cuenta. Verificá los datos e intentá de nuevo.",
-        );
+        setError("No pudimos crear cuenta. Verificá datos.");
       }
       setLoading(false);
       return;
     }
 
-    // No session means email confirmation is required
-    if (!auth.session) {
-      const pendingProfile = {
-        email: data.email,
-        first_name: data.first_name || "",
-        last_name: data.last_name || "",
-        company_name: data.company_name || "",
-        whatsapp_region: onlyDigits(data.whatsapp_region) || "",
-        whatsapp_area: onlyDigits(data.whatsapp_area) || "",
-        whatsapp_number_local: onlyDigits(data.whatsapp_number_local) || "",
-        delivery_option: data.delivery_option || [],
-        niche: data.niche || "",
-        social_links: data.social_links || "",
-      };
-      try {
-        localStorage.setItem("pending_profile", JSON.stringify(pendingProfile));
-      } catch (e) {}
-      setError(
-        "Revisá tu casilla de correo y confirmá tu cuenta. Tus datos se guardaron temporalmente.",
-      );
-      setLoading(false);
-      return;
-    }
-
+    // Upload Avatar if exist
     let avatarUrl = null;
-    if (data.avatar && data.avatar[0]) {
+    if (data.avatar && data.avatar[0] && auth.user) {
       const file = data.avatar[0];
       const fileExt = file.name.split(".").pop();
       const fileName = `${auth.user.id}/avatar.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(fileName, file, { upsert: true });
+
       if (!uploadError) {
         const { data: urlData } = supabase.storage
           .from("avatars")
           .getPublicUrl(fileName);
         avatarUrl = urlData.publicUrl;
+
+        // Update metadata with avatar
+        await supabase.auth.updateUser({
+          data: { avatar_url: avatarUrl },
+        });
       }
     }
 
-    const whatsapp_number = concatParts(
-      data.whatsapp_region,
-      data.whatsapp_area,
-      data.whatsapp_number_local,
-    );
-    const whatsapp_region = onlyDigits(data.whatsapp_region) || null;
-    const whatsapp_area = onlyDigits(data.whatsapp_area) || null;
-    const whatsapp_number_local =
-      onlyDigits(data.whatsapp_number_local) || null;
-
-    let profileError = null;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      if (attempt > 0) await new Promise((r) => setTimeout(r, 500));
-      const result = await supabase.from("profiles").upsert(
-        {
-          id: auth.user.id,
-          email: data.email,
-          first_name: data.first_name,
-          last_name: data.last_name,
-          company_name: data.company_name,
-          delivery_option: data.delivery_option?.join(",") || null,
-          whatsapp_number,
-          whatsapp_region,
-          whatsapp_area,
-          whatsapp_number_local,
-          niche: data.niche,
-          social_links: data.social_links,
-          avatar_url: avatarUrl,
-        },
-        { onConflict: "id" },
-      );
-      profileError = result.error;
-      if (!profileError) break;
+    if (!auth.session) {
+      setError("Revisá correo. Confirmá cuenta.");
+      setLoading(false);
+      return;
     }
 
-    const pendingProfile = {
-      email: data.email,
-      first_name: data.first_name || "",
-      last_name: data.last_name || "",
-      company_name: data.company_name || "",
-      // store sanitized (digits-only) parts so restoring them later yields
-      // the same visible values in the form
-      whatsapp_region: onlyDigits(data.whatsapp_region) || "",
-      whatsapp_area: onlyDigits(data.whatsapp_area) || "",
-      whatsapp_number_local: onlyDigits(data.whatsapp_number_local) || "",
-      delivery_option: data.delivery_option || [],
-      niche: data.niche || "",
-      social_links: data.social_links || "",
-    };
-
-    if (profileError) {
-      try {
-        localStorage.setItem("pending_profile", JSON.stringify(pendingProfile));
-      } catch (e) {}
-      setError(
-        "Error al guardar el perfil. Guardamos temporalmente tus datos, por favor iniciá sesión e intentá de nuevo.",
-      );
-    } else {
-      try {
-        localStorage.removeItem("pending_profile");
-      } catch (e) {}
-      const baseSlug = generateBaseSlug(
-        data.first_name,
-        data.last_name,
-        data.company_name,
-      );
-      const slug = await generateUniqueSlug(supabase, "profiles", baseSlug);
-      await supabase.from("profiles").update({ slug }).eq("id", auth.user.id);
-      router.push("/dashboard");
-    }
-
+    router.push("/dashboard");
     setLoading(false);
   };
 
