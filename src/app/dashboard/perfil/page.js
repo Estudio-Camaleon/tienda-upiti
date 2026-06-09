@@ -145,7 +145,10 @@ export default function EditProfile() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm({ resolver: zodResolver(profileSchema) });
+  } = useForm({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { delivery_option: [] },
+  });
 
   const {
     register: registerDelete,
@@ -217,7 +220,9 @@ export default function EditProfile() {
           first_name: data.first_name || "",
           last_name: data.last_name || "",
           company_name: data.company_name || "",
-          delivery_option: data.delivery_option || "",
+          delivery_option: data.delivery_option
+            ? data.delivery_option.split(",").filter(Boolean)
+            : [],
           whatsapp_region: parts.whatsapp_region,
           whatsapp_area: parts.whatsapp_area,
           whatsapp_number_local: parts.whatsapp_number_local,
@@ -239,7 +244,11 @@ export default function EditProfile() {
               first_name: pd.first_name || "",
               last_name: pd.last_name || "",
               company_name: pd.company_name || "",
-              delivery_option: pd.delivery_option || "",
+              delivery_option: pd.delivery_option
+                ? Array.isArray(pd.delivery_option)
+                  ? pd.delivery_option
+                  : pd.delivery_option.split(",").filter(Boolean)
+                : [],
               whatsapp_region: pd.whatsapp_region || "",
               whatsapp_area: pd.whatsapp_area || "",
               whatsapp_number_local: pd.whatsapp_number_local || "",
@@ -307,7 +316,7 @@ export default function EditProfile() {
         first_name: formData.first_name,
         last_name: formData.last_name,
         company_name: formData.company_name,
-        delivery_option: formData.delivery_option || null,
+        delivery_option: formData.delivery_option?.join(",") || null,
         niche: nicheStr,
         social_links: socialLinksStr,
         whatsapp_number,
@@ -579,10 +588,10 @@ export default function EditProfile() {
           <div className="flex flex-col sm:flex-row gap-3">
             <label className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-200 border-gray-200 hover:border-emerald-200">
               <input
-                type="radio"
+                type="checkbox"
                 value="delivery"
                 {...register("delivery_option")}
-                className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0"
+                className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0 rounded"
               />
               <div>
                 <p className="font-bold text-gray-800 text-sm">
@@ -595,10 +604,10 @@ export default function EditProfile() {
             </label>
             <label className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-200 border-gray-200 hover:border-emerald-200">
               <input
-                type="radio"
+                type="checkbox"
                 value="pickup"
                 {...register("delivery_option")}
-                className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0"
+                className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0 rounded"
               />
               <div>
                 <p className="font-bold text-gray-800 text-sm">
@@ -610,6 +619,12 @@ export default function EditProfile() {
               </div>
             </label>
           </div>
+          {errors.delivery_option && (
+            <p className="text-red-500 text-xs font-medium mt-1">
+              {errors.delivery_option.message ||
+                errors.delivery_option.root?.message}
+            </p>
+          )}
         </div>
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-gray-700 mb-1.5">

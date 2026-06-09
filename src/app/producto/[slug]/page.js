@@ -54,13 +54,19 @@ function SellerCard({ seller, themeColor }) {
           <p className="font-bold text-gray-900 text-sm truncate">
             {seller.company_name || `${seller.first_name} ${seller.last_name}`}
           </p>
-          {seller.delivery_option && (
-            <p className="text-xs text-gray-400 truncate">
-              {seller.delivery_option === "delivery"
-                ? "Envío a domicilio"
-                : "Punto de encuentro"}
-            </p>
-          )}
+          {seller.delivery_option &&
+            (() => {
+              const opts = seller.delivery_option.split(",").filter(Boolean);
+              if (opts.length === 0) return null;
+              const labels = opts.map((o) =>
+                o === "delivery" ? "Envío a domicilio" : "Punto de encuentro",
+              );
+              return (
+                <p className="text-xs text-gray-400 truncate">
+                  {labels.join(" y ")}
+                </p>
+              );
+            })()}
         </div>
       </div>
       {seller.whatsapp_number && (

@@ -43,7 +43,7 @@ npm run clean        # rimraf .next (fixes stale-cache bugs)
 - **WhatsApp**: stored as 3 separate columns (`whatsapp_region`, `whatsapp_area`, `whatsapp_number_local`), concatenated via `concatParts()` in `src/lib/phone.js`
 - **Niches**: stored as comma-separated text column, displayed as pills
 - **Social links**: stored as JSON array `[{label, url}]` in `social_links` column
-- **Delivery option**: `delivery_option` column, values `"delivery"` / `"pickup"`
+- **Delivery option**: `delivery_option` column, comma-separated values `"delivery"`,`"pickup"` or both `"delivery,pickup"`
 - **Rating**: DB reviews use 1–5 scale; display max is 5.5 (percentage = avg / 5.5 × 100)
 
 ## Database Migrations

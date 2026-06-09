@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -103,28 +103,29 @@ const countries = [
 ];
 
 function PasswordStrength({ password }) {
-  const strength = useMemo(() => {
-    if (!password) return { label: "", level: 0, bars: 0, color: "" };
-    let score = 0;
-    if (password.length >= 8) score++;
-    if (password.length >= 12) score++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
-    if (/\d/.test(password)) score++;
-    if (/[^a-zA-Z0-9]/.test(password)) score++;
-
-    if (score <= 1)
-      return { label: "Débil", level: 1, bars: 1, color: "bg-red-500" };
-    if (score <= 2)
-      return { label: "Regular", level: 2, bars: 2, color: "bg-orange-500" };
-    if (score <= 3)
-      return { label: "Buena", level: 3, bars: 3, color: "bg-yellow-500" };
-    return { label: "Segura", level: 4, bars: 4, color: "bg-emerald-500" };
+  const checks = useMemo(() => {
+    return [
+      { label: "8 caracteres o más", ok: password?.length >= 8 },
+      { label: "Al menos 1 mayúscula", ok: /[A-Z]/.test(password) },
+      { label: "Al menos 1 minúscula", ok: /[a-z]/.test(password) },
+      { label: "Al menos 1 número", ok: /\d/.test(password) },
+    ];
   }, [password]);
+
+  const strength = useMemo(() => {
+    if (!password) return { label: "", bars: 0, color: "" };
+    const score = checks.filter((c) => c.ok).length;
+    if (score <= 1) return { label: "Débil", bars: 1, color: "bg-red-500" };
+    if (score === 2)
+      return { label: "Regular", bars: 2, color: "bg-orange-500" };
+    if (score === 3) return { label: "Buena", bars: 3, color: "bg-yellow-500" };
+    return { label: "Segura", bars: 4, color: "bg-emerald-500" };
+  }, [password, checks]);
 
   if (!password) return null;
 
   return (
-    <div className="mt-2 space-y-1">
+    <div className="mt-2 space-y-2">
       <div className="flex gap-1">
         {[1, 2, 3, 4].map((i) => (
           <div
@@ -140,6 +141,19 @@ function PasswordStrength({ password }) {
       >
         {strength.label}
       </p>
+      <ul className="space-y-0.5">
+        {checks.map((c, i) => (
+          <li
+            key={i}
+            className={`text-[11px] flex items-center gap-1.5 ${
+              c.ok ? "text-emerald-600" : "text-gray-400"
+            }`}
+          >
+            <span className="text-xs leading-none">{c.ok ? "✓" : "○"}</span>
+            {c.label}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -207,10 +221,22 @@ export default function Register() {
     handleSubmit,
     control,
     formState: { errors },
-  } = useForm({ resolver: zodResolver(registerSchema) });
+  } = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { delivery_option: [] },
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   const password = useWatch({ control, name: "password" });
 
@@ -223,6 +249,11 @@ export default function Register() {
     const { data: auth, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      options: {
+        emailRedirectTo: `${
+          process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+        }/login`,
+      },
     });
 
     if (authError) {
@@ -247,7 +278,7 @@ export default function Register() {
         whatsapp_region: onlyDigits(data.whatsapp_region) || "",
         whatsapp_area: onlyDigits(data.whatsapp_area) || "",
         whatsapp_number_local: onlyDigits(data.whatsapp_number_local) || "",
-        delivery_option: data.delivery_option || "",
+        delivery_option: data.delivery_option || [],
         niche: data.niche || "",
         social_links: data.social_links || "",
       };
@@ -297,7 +328,7 @@ export default function Register() {
           first_name: data.first_name,
           last_name: data.last_name,
           company_name: data.company_name,
-          delivery_option: data.delivery_option || null,
+          delivery_option: data.delivery_option?.join(",") || null,
           whatsapp_number,
           whatsapp_region,
           whatsapp_area,
@@ -322,7 +353,7 @@ export default function Register() {
       whatsapp_region: onlyDigits(data.whatsapp_region) || "",
       whatsapp_area: onlyDigits(data.whatsapp_area) || "",
       whatsapp_number_local: onlyDigits(data.whatsapp_number_local) || "",
-      delivery_option: data.delivery_option || "",
+      delivery_option: data.delivery_option || [],
       niche: data.niche || "",
       social_links: data.social_links || "",
     };
@@ -566,13 +597,13 @@ export default function Register() {
               <p className="text-sm text-gray-500 mb-4">
                 ¿Cómo entregás tus productos?
               </p>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <label className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-200 border-gray-200 hover:border-emerald-200">
                   <input
-                    type="radio"
+                    type="checkbox"
                     value="delivery"
                     {...register("delivery_option")}
-                    className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0"
+                    className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0 rounded"
                   />
                   <div>
                     <p className="font-bold text-gray-800 text-sm">
@@ -585,10 +616,10 @@ export default function Register() {
                 </label>
                 <label className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-200 border-gray-200 hover:border-emerald-200">
                   <input
-                    type="radio"
+                    type="checkbox"
                     value="pickup"
                     {...register("delivery_option")}
-                    className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0"
+                    className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0 rounded"
                   />
                   <div>
                     <p className="font-bold text-gray-800 text-sm">
@@ -600,6 +631,12 @@ export default function Register() {
                   </div>
                 </label>
               </div>
+              {errors.delivery_option && (
+                <p className="text-red-500 text-xs font-medium mt-2">
+                  {errors.delivery_option.message ||
+                    errors.delivery_option.root?.message}
+                </p>
+              )}
             </section>
 
             <hr className="border-gray-100" />

@@ -13,7 +13,13 @@ export const registerSchema = z
       .min(1, "Requerido")
       .email("Email inválido")
       .max(254),
-    password: z.string().min(8, "Mínimo 8 caracteres").max(128),
+    password: z
+      .string()
+      .min(8, "Mínimo 8 caracteres")
+      .max(128)
+      .regex(/[A-Z]/, "Al menos una mayúscula")
+      .regex(/[a-z]/, "Al menos una minúscula")
+      .regex(/\d/, "Al menos un número"),
     confirmPassword: z.string().min(8, "Mínimo 8 caracteres").max(128),
     first_name: z.string().trim().min(1, "Requerido").max(50),
     last_name: z.string().trim().min(1, "Requerido").max(50),
@@ -30,9 +36,11 @@ export const registerSchema = z
       .string()
       .trim()
       .regex(/^\d{6,8}$/, "Ej: 9999999"),
-    delivery_option: z.enum(["delivery", "pickup"], {
-      required_error: "Seleccioná cómo entregás tus productos",
-    }),
+    delivery_option: z
+      .array(z.enum(["delivery", "pickup"]), {
+        required_error: "Seleccioná al menos un tipo de envío",
+      })
+      .min(1, "Seleccioná al menos un tipo de envío"),
     niche: z.string().trim().max(100).optional(),
     social_links: z
       .string()
@@ -80,9 +88,11 @@ export const profileSchema = z.object({
     .string()
     .trim()
     .regex(/^\d{6,8}$/, "Ej: 9999999"),
-  delivery_option: z.enum(["delivery", "pickup"], {
-    required_error: "Seleccioná cómo entregás tus productos",
-  }),
+  delivery_option: z
+    .array(z.enum(["delivery", "pickup"]), {
+      required_error: "Seleccioná al menos un tipo de envío",
+    })
+    .min(1, "Seleccioná al menos un tipo de envío"),
   niches: z.array(z.string().trim().max(100)).optional(),
   socialLinks: z
     .array(

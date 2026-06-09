@@ -389,16 +389,24 @@ export default function SellerProfile() {
                     ))}
                   </div>
                 )}
-                {seller.delivery_option && (
-                  <>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-xs">
-                      {seller.delivery_option === "delivery"
+                {seller.delivery_option &&
+                  (() => {
+                    const opts = seller.delivery_option
+                      .split(",")
+                      .filter(Boolean);
+                    if (opts.length === 0) return null;
+                    const labels = opts.map((o) =>
+                      o === "delivery"
                         ? "Envío a domicilio"
-                        : "Punto de encuentro"}
-                    </span>
-                  </>
-                )}
+                        : "Punto de encuentro",
+                    );
+                    return (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span className="text-xs">{labels.join(" y ")}</span>
+                      </>
+                    );
+                  })()}
               </div>
 
               <div className="flex flex-wrap items-center gap-3 mt-4">
@@ -554,16 +562,26 @@ export default function SellerProfile() {
                   </span>
                 </div>
               )}
-              {seller.delivery_option && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Entrega</span>
-                  <span className="font-medium text-gray-900 text-right">
-                    {seller.delivery_option === "delivery"
+              {seller.delivery_option &&
+                (() => {
+                  const opts = seller.delivery_option
+                    .split(",")
+                    .filter(Boolean);
+                  if (opts.length === 0) return null;
+                  const labels = opts.map((o) =>
+                    o === "delivery"
                       ? "Envío a domicilio"
-                      : "Punto de encuentro"}
-                  </span>
-                </div>
-              )}
+                      : "Punto de encuentro",
+                  );
+                  return (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Entrega</span>
+                      <span className="font-medium text-gray-900 text-right">
+                        {labels.join(" y ")}
+                      </span>
+                    </div>
+                  );
+                })()}
             </div>
           </div>
 
