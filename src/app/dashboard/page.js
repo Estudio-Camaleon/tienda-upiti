@@ -1,12 +1,12 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { productSchema } from "../../lib/schemas";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmContext";
 
@@ -50,14 +50,96 @@ function StatusBadge({ status, reason }) {
   );
 }
 
+const MAX_RATING = 5.5;
+const ITEMS_PER_PAGE = 12;
+
+function StarBar({ value, max = MAX_RATING }) {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  return (
+    <div className="w-full bg-gray-100 rounded-full h-2.5">
+      <div
+        className="bg-amber-400 h-2.5 rounded-full transition-all"
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+function RatingSection({ reviews }) {
+  const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  reviews.forEach((r) => {
+    if (counts[r.rating] !== undefined) counts[r.rating]++;
+  });
+  const total = reviews.length;
+  const avg = total > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / total : 0;
+  const pct = total > 0 ? (avg / MAX_RATING) * 100 : 0;
+
+  if (total === 0) return null;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">
+        Calificaciones
+      </h3>
+      <div className="flex items-end gap-6 mb-5">
+        <div className="text-center">
+          <p className="text-4xl font-black text-gray-900">{avg.toFixed(1)}</p>
+          <p className="text-xs text-gray-400">/ {MAX_RATING.toFixed(1)}</p>
+        </div>
+        <div className="flex-1">
+          <StarBar value={avg} />
+          <p className="text-xs text-gray-500 mt-1">
+            {pct.toFixed(1)}% positivo &bull; {total} reseña
+            {total !== 1 ? "s" : ""}
+          </p>
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        {[5, 4, 3, 2, 1].map((star) => {
+          const starPct = total > 0 ? (counts[star] / total) * 100 : 0;
+          return (
+            <div key={star} className="flex items-center gap-2 text-xs">
+              <span className="w-8 font-bold text-gray-600 text-right">
+                {star}
+              </span>
+              <svg
+                className="w-3.5 h-3.5 text-amber-400 shrink-0"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <div className="flex-1">
+                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                  <div
+                    className="bg-amber-400 h-1.5 rounded-full"
+                    style={{ width: `${starPct}%` }}
+                  />
+                </div>
+              </div>
+              <span className="w-10 text-right text-gray-400">
+                {starPct.toFixed(0)}%
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function SellerDashboard({ user }) {
   const { addToast } = useToast();
   const confirm = useConfirm();
   const [products, setProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [productImage, setProductImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showForm, setShowForm] = useState(false);
 
   const {
     register,
@@ -78,13 +160,17 @@ function SellerDashboard({ user }) {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .eq("seller_id", user.id)
-        .order("id", { ascending: false });
+      const [prodRes, revRes] = await Promise.all([
+        supabase
+          .from("products")
+          .select("*")
+          .eq("seller_id", user.id)
+          .order("id", { ascending: false }),
+        supabase.from("reviews").select("rating").eq("seller_id", user.id),
+      ]);
       if (!mounted) return;
-      setProducts(data || []);
+      setProducts(prodRes.data || []);
+      setReviews(revRes.data || []);
       setLoading(false);
     })();
     return () => {
@@ -108,7 +194,6 @@ function SellerDashboard({ user }) {
         setUploading(false);
         return;
       }
-
       const { data: urlData } = supabase.storage
         .from("products")
         .getPublicUrl(fileName);
@@ -165,9 +250,48 @@ function SellerDashboard({ user }) {
     addToast("Producto eliminado.", "success");
   };
 
+  const searchLower = search.toLowerCase();
+  const filtered = useMemo(
+    () => products.filter((p) => p.name.toLowerCase().includes(searchLower)),
+    [products, searchLower],
+  );
+
+  const grouped = useMemo(() => {
+    const map = {};
+    for (const p of filtered) {
+      if (!map[p.category]) map[p.category] = [];
+      map[p.category].push(p);
+    }
+    const sorted = Object.keys(map).sort();
+    const result = {};
+    for (const cat of sorted) result[cat] = map[cat];
+    return result;
+  }, [filtered]);
+
+  const flatGrouped = useMemo(() => Object.values(grouped).flat(), [grouped]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(flatGrouped.length / ITEMS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+
+  const pageItems = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return flatGrouped.slice(start, start + ITEMS_PER_PAGE);
+  }, [flatGrouped, safePage]);
+
+  const pageGrouped = useMemo(() => {
+    const map = {};
+    for (const p of pageItems) {
+      if (!map[p.category]) map[p.category] = [];
+      map[p.category].push(p);
+    }
+    return map;
+  }, [pageItems]);
+
   const pendingCount = products.filter((p) => p.status === "pending").length;
   const approvedCount = products.filter((p) => p.status === "approved").length;
-  const rejectedCount = products.filter((p) => p.status === "rejected").length;
 
   if (loading)
     return (
@@ -177,272 +301,423 @@ function SellerDashboard({ user }) {
     );
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="grid lg:grid-cols-3 gap-8"
-    >
-      <div className="lg:col-span-2 space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-black text-gray-900">Mis Productos</h2>
-          <Link
-            href="/dashboard/perfil"
-            className="text-sm font-bold text-emerald-600 hover:underline"
-          >
-            Editar perfil →
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 text-center">
-            <p className="text-2xl font-black text-gray-900">
-              {products.length}
-            </p>
-            <p className="text-xs font-bold text-gray-500 uppercase">Total</p>
-          </div>
-          <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-center">
-            <p className="text-2xl font-black text-amber-600">{pendingCount}</p>
-            <p className="text-xs font-bold text-amber-600 uppercase">
-              Pendientes
-            </p>
-          </div>
-          <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 text-center">
-            <p className="text-2xl font-black text-emerald-600">
-              {approvedCount}
-            </p>
-            <p className="text-xs font-bold text-emerald-600 uppercase">
-              Aprobados
-            </p>
-          </div>
-        </div>
-
-        {products.length === 0 ? (
-          <p className="text-gray-400">
-            Aún no tenés productos. ¡Subí tu primero!
-          </p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {products.map((p) => (
-              <div
-                key={p.id}
-                className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <p className="font-bold text-gray-900">{p.name}</p>
-                  <StatusBadge status={p.status} reason={p.rejected_reason} />
-                </div>
-                <p className="text-sm text-gray-500">{p.category}</p>
-                <p className="text-emerald-600 font-black mt-1">
-                  ${Number(p.price).toLocaleString("es-AR")}
-                </p>
-                {p.status === "rejected" && p.rejected_reason && (
-                  <p className="text-xs text-red-500 mt-1 bg-red-50 p-2 rounded-lg">
-                    Motivo: {p.rejected_reason}
-                  </p>
-                )}
-                <button
-                  onClick={() => handleDeleteProduct(p.id)}
-                  className="mt-2 text-xs font-bold text-red-500 hover:text-red-700"
-                >
-                  Eliminar
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div
-        id="agregar-producto"
-        className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-fit scroll-mt-24"
-      >
-        <h3 className="text-lg font-black text-gray-900 mb-4">
-          Agregar Producto
-        </h3>
-        <p className="text-xs text-gray-500 mb-4">
-          Tu producto será revisado por un administrador antes de publicarse.
-        </p>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-bold text-gray-700 mb-1.5"
-            >
-              Nombre del producto
-            </label>
-            <input
-              id="name"
-              {...register("name")}
-              placeholder="Ej: Cartera de cuero"
-              className={`w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${
-                errors.name
-                  ? "border-red-400 focus:ring-red-500/20"
-                  : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
-              }`}
-            />
-            {errors.name && (
-              <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
-                {errors.name.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="brand"
-              className="block text-sm font-bold text-gray-700 mb-1.5"
-            >
-              Marca{" "}
-              <span className="text-gray-400 font-normal">(opcional)</span>
-            </label>
-            <input
-              id="brand"
-              {...register("brand")}
-              placeholder="Ej: Nike, Adidas"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="category"
-              className="block text-sm font-bold text-gray-700 mb-1.5"
-            >
-              Categoría
-            </label>
-            <select
-              id="category"
-              {...register("category")}
-              className={`w-full px-4 py-3 rounded-xl border outline-none text-sm bg-white transition-shadow focus:ring-2 ${
-                errors.category
-                  ? "border-red-400 focus:ring-red-500/20"
-                  : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
-              }`}
-            >
-              <option value="">Seleccioná una categoría</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            {errors.category && (
-              <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
-                {errors.category.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="price"
-              className="block text-sm font-bold text-gray-700 mb-1.5"
-            >
-              Precio
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">
-                $
-              </span>
-              <input
-                id="price"
-                type="number"
-                step="0.01"
-                {...register("price")}
-                placeholder="0.00"
-                className={`w-full pl-8 pr-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${
-                  errors.price
-                    ? "border-red-400 focus:ring-red-500/20"
-                    : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
-                }`}
-              />
-            </div>
-            {errors.price && (
-              <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
-                {errors.price.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-bold text-gray-700 mb-1.5"
-            >
-              Descripción{" "}
-              <span className="text-gray-400 font-normal">(opcional)</span>
-            </label>
-            <textarea
-              id="description"
-              {...register("description")}
-              placeholder="Describí tu producto, sus materiales, medidas, colores disponibles..."
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm h-28 resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5">
-              Imagen del producto
-            </label>
-            <div className="flex items-center gap-4">
-              {imagePreview && (
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-16 h-16 rounded-xl object-cover border border-gray-200 shrink-0"
-                />
-              )}
-              <div className="flex-1">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    setProductImage(file || null);
-                    if (file) setImagePreview(URL.createObjectURL(file));
-                  }}
-                  className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-                />
-                <p className="text-[11px] text-gray-400 mt-1">
-                  PNG o JPG. Máximo 5 MB.
-                </p>
-              </div>
-            </div>
-          </div>
-
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-2xl font-black text-gray-900">Mis Productos</h2>
+        <div className="flex items-center gap-3">
           <button
-            type="submit"
-            disabled={uploading}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-all text-sm"
+            onClick={() => setShowForm(!showForm)}
+            className="text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl transition-colors"
           >
-            {uploading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                Subiendo...
-              </span>
-            ) : (
-              "Enviar para revisión"
-            )}
+            {showForm ? "Cerrar" : "+ Producto"}
           </button>
-        </form>
+        </div>
       </div>
-    </motion.div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 text-center">
+          <p className="text-2xl font-black text-gray-900">{products.length}</p>
+          <p className="text-xs font-bold text-gray-500 uppercase">Total</p>
+        </div>
+        <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-center">
+          <p className="text-2xl font-black text-amber-600">{pendingCount}</p>
+          <p className="text-xs font-bold text-amber-600 uppercase">
+            Pendientes
+          </p>
+        </div>
+        <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 text-center">
+          <p className="text-2xl font-black text-emerald-600">
+            {approvedCount}
+          </p>
+          <p className="text-xs font-bold text-emerald-600 uppercase">
+            Aprobados
+          </p>
+        </div>
+      </div>
+
+      <RatingSection reviews={reviews} />
+
+      <div className="relative">
+        <svg
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+          }}
+          placeholder="Buscar productos..."
+          className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 outline-none text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 bg-white"
+        />
+      </div>
+
+      {Object.keys(pageGrouped).length === 0 ? (
+        <p className="text-gray-400 text-center py-12">
+          {search
+            ? "No se encontraron productos con ese nombre."
+            : "Aún no tenés productos. ¡Subí tu primero!"}
+        </p>
+      ) : (
+        <div className="space-y-8">
+          {Object.entries(pageGrouped).map(([category, items]) => (
+            <div key={category}>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="text-lg font-black text-gray-800">{category}</h3>
+                <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                  {items.length}
+                </span>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {items.map((p) => (
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+                  >
+                    <div className="aspect-[4/3] bg-gray-50 relative overflow-hidden">
+                      {p.image ? (
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-200">
+                          <svg
+                            className="w-10 h-10"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2">
+                        <StatusBadge
+                          status={p.status}
+                          reason={p.rejected_reason}
+                        />
+                      </div>
+                    </div>
+                    <div className="p-3 space-y-1.5">
+                      <p className="font-bold text-gray-900 text-sm leading-tight truncate">
+                        {p.name}
+                      </p>
+                      {p.brand && (
+                        <p className="text-xs text-gray-400 truncate">
+                          {p.brand}
+                        </p>
+                      )}
+                      <p className="text-emerald-600 font-black text-sm">
+                        ${Number(p.price).toLocaleString("es-AR")}
+                      </p>
+                      {p.description && (
+                        <p className="text-xs text-gray-500 line-clamp-2">
+                          {p.description}
+                        </p>
+                      )}
+                      {p.status === "rejected" && p.rejected_reason && (
+                        <p className="text-xs text-red-500 bg-red-50 p-2 rounded-lg leading-tight">
+                          Motivo: {p.rejected_reason}
+                        </p>
+                      )}
+                      <div className="pt-1.5 flex items-center gap-3">
+                        {p.status === "approved" && (
+                          <Link
+                            href={`/producto/${p.id}`}
+                            className="text-xs font-bold text-emerald-600 hover:text-emerald-700"
+                          >
+                            Ver en tienda
+                          </Link>
+                        )}
+                        <button
+                          onClick={() => handleDeleteProduct(p.id)}
+                          className="text-xs font-bold text-red-500 hover:text-red-700 ml-auto"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={safePage <= 1}
+            className="px-3 py-2 rounded-xl text-sm font-bold border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+          >
+            ← Anterior
+          </button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(
+                (p) =>
+                  p === 1 || p === totalPages || Math.abs(p - safePage) <= 2,
+              )
+              .map((p, idx, arr) => (
+                <span key={p} className="flex items-center">
+                  {idx > 0 && arr[idx - 1] !== p - 1 && (
+                    <span className="px-1 text-gray-300 text-sm">...</span>
+                  )}
+                  <button
+                    onClick={() => setCurrentPage(p)}
+                    className={`w-9 h-9 rounded-xl text-sm font-bold transition-colors ${
+                      p === safePage
+                        ? "bg-emerald-600 text-white"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                </span>
+              ))}
+          </div>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={safePage >= totalPages}
+            className="px-3 py-2 rounded-xl text-sm font-bold border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div
+              id="agregar-producto"
+              className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 scroll-mt-24"
+            >
+              <h3 className="text-lg font-black text-gray-900 mb-4">
+                Agregar Producto
+              </h3>
+              <p className="text-xs text-gray-500 mb-4">
+                Tu producto será revisado por un administrador antes de
+                publicarse.
+              </p>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-bold text-gray-700 mb-1.5"
+                  >
+                    Nombre del producto
+                  </label>
+                  <input
+                    id="name"
+                    {...register("name")}
+                    placeholder="Ej: Cartera de cuero"
+                    maxLength={100}
+                    className={`w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${
+                      errors.name
+                        ? "border-red-400 focus:ring-red-500/20"
+                        : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                    }`}
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="brand"
+                    className="block text-sm font-bold text-gray-700 mb-1.5"
+                  >
+                    Marca{" "}
+                    <span className="text-gray-400 font-normal">
+                      (opcional)
+                    </span>
+                  </label>
+                  <input
+                    id="brand"
+                    {...register("brand")}
+                    placeholder="Ej: Nike, Adidas"
+                    maxLength={50}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="category"
+                    className="block text-sm font-bold text-gray-700 mb-1.5"
+                  >
+                    Categoría
+                  </label>
+                  <select
+                    id="category"
+                    {...register("category")}
+                    className={`w-full px-4 py-3 rounded-xl border outline-none text-sm bg-white transition-shadow focus:ring-2 ${
+                      errors.category
+                        ? "border-red-400 focus:ring-red-500/20"
+                        : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                    }`}
+                  >
+                    <option value="">Seleccioná una categoría</option>
+                    {categories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.category && (
+                    <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
+                      {errors.category.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="price"
+                    className="block text-sm font-bold text-gray-700 mb-1.5"
+                  >
+                    Precio
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">
+                      $
+                    </span>
+                    <input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      {...register("price")}
+                      placeholder="0.00"
+                      className={`w-full pl-8 pr-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${
+                        errors.price
+                          ? "border-red-400 focus:ring-red-500/20"
+                          : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                      }`}
+                    />
+                  </div>
+                  {errors.price && (
+                    <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
+                      {errors.price.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-bold text-gray-700 mb-1.5"
+                  >
+                    Descripción{" "}
+                    <span className="text-gray-400 font-normal">
+                      (opcional)
+                    </span>
+                  </label>
+                  <textarea
+                    id="description"
+                    {...register("description")}
+                    placeholder="Describí tu producto, sus materiales, medidas, colores disponibles..."
+                    maxLength={1000}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm h-28 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                    Imagen del producto
+                  </label>
+                  <div className="flex items-center gap-4">
+                    {imagePreview && (
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-16 h-16 rounded-xl object-cover border border-gray-200 shrink-0"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          setProductImage(file || null);
+                          if (file) setImagePreview(URL.createObjectURL(file));
+                        }}
+                        className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                      />
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        PNG o JPG. Máximo 5 MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-all text-sm"
+                >
+                  {uploading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                      Subiendo...
+                    </span>
+                  ) : (
+                    "Enviar para revisión"
+                  )}
+                </button>
+              </form>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -838,6 +1113,7 @@ function AdminDashboard() {
 }
 
 export default function Dashboard() {
+  const { addToast } = useToast();
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -882,7 +1158,7 @@ export default function Dashboard() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="max-w-6xl mx-auto px-4 py-8 flex-1"
+      className="max-w-7xl mx-auto px-4 py-8 flex-1"
     >
       <div className="flex items-center justify-between mb-8 border-b pb-4">
         <div className="flex items-center gap-4">
@@ -908,12 +1184,25 @@ export default function Dashboard() {
           </div>
         </div>
         {profile?.role !== "admin" && (
-          <Link
-            href="/dashboard/perfil"
-            className="text-sm font-bold text-emerald-600 hover:underline shrink-0"
-          >
-            Editar perfil →
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `${window.location.origin}/vendedor/${user.id}`,
+                );
+                addToast("Enlace copiado al portapapeles.", "success");
+              }}
+              className="text-sm font-bold text-gray-500 hover:text-emerald-600 transition-colors shrink-0"
+            >
+              Copiar enlace
+            </button>
+            <Link
+              href="/dashboard/perfil"
+              className="text-sm font-bold text-emerald-600 hover:underline shrink-0"
+            >
+              Editar perfil →
+            </Link>
+          </div>
         )}
       </div>
 

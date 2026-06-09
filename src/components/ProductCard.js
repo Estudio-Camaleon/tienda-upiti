@@ -61,7 +61,7 @@ export default function ProductCard({ product, index }) {
         </div>
 
         {product.seller_id && (
-          <p className="text-[11px] text-gray-400 -mt-2">
+          <p className="truncate text-[11px] text-gray-400 -mt-2">
             Vendido por{" "}
             <Link
               href={`/vendedor/${product.seller_id}`}

@@ -101,32 +101,6 @@ const countries = [
   { code: "961", name: "Líbano" },
 ];
 
-const provinces = [
-  "Buenos Aires",
-  "Catamarca",
-  "Chaco",
-  "Chubut",
-  "Córdoba",
-  "Corrientes",
-  "Entre Ríos",
-  "Formosa",
-  "Jujuy",
-  "La Pampa",
-  "La Rioja",
-  "Mendoza",
-  "Misiones",
-  "Neuquén",
-  "Río Negro",
-  "Salta",
-  "San Juan",
-  "San Luis",
-  "Santa Cruz",
-  "Santa Fe",
-  "Santiago del Estero",
-  "Tierra del Fuego",
-  "Tucumán",
-];
-
 function PasswordStrength({ password }) {
   const strength = useMemo(() => {
     if (!password) return { label: "", level: 0, bars: 0, color: "" };
@@ -178,6 +152,7 @@ function Field({
   placeholder,
   options,
   className,
+  maxLength,
 }) {
   const hasError = !!errors[name];
   const borderColor = hasError
@@ -210,6 +185,7 @@ function Field({
           id={name}
           type={type || "text"}
           placeholder={placeholder}
+          maxLength={maxLength}
           {...register(name)}
           className={`w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${borderColor}`}
         />
@@ -296,14 +272,11 @@ export default function Register() {
           first_name: data.first_name,
           last_name: data.last_name,
           company_name: data.company_name,
-          province: data.province,
-          city: data.city,
-          address: data.address,
+          delivery_option: data.delivery_option || null,
           whatsapp_number,
           whatsapp_region,
           whatsapp_area,
           whatsapp_number_local,
-          birthdate: data.birthdate,
           niche: data.niche,
           social_links: data.social_links,
           avatar_url: avatarUrl,
@@ -319,15 +292,12 @@ export default function Register() {
       first_name: data.first_name || "",
       last_name: data.last_name || "",
       company_name: data.company_name || "",
-      province: data.province || "",
-      city: data.city || "",
-      address: data.address || "",
       // store sanitized (digits-only) parts so restoring them later yields
       // the same visible values in the form
       whatsapp_region: onlyDigits(data.whatsapp_region) || "",
       whatsapp_area: onlyDigits(data.whatsapp_area) || "",
       whatsapp_number_local: onlyDigits(data.whatsapp_number_local) || "",
-      birthdate: data.birthdate || "",
+      delivery_option: data.delivery_option || "",
       niche: data.niche || "",
       social_links: data.social_links || "",
     };
@@ -498,6 +468,7 @@ export default function Register() {
                   name="first_name"
                   errors={errors}
                   placeholder="Tu nombre"
+                  maxLength={50}
                 />
                 <Field
                   label="Apellido"
@@ -505,13 +476,7 @@ export default function Register() {
                   name="last_name"
                   errors={errors}
                   placeholder="Tu apellido"
-                />
-                <Field
-                  label="Fecha de nacimiento"
-                  register={register}
-                  name="birthdate"
-                  errors={errors}
-                  type="date"
+                  maxLength={50}
                 />
               </div>
             </section>
@@ -526,18 +491,16 @@ export default function Register() {
                 <h3 className="text-lg font-black text-gray-900">
                   Tu emprendimiento
                 </h3>
-                <span className="text-[11px] text-gray-400 font-medium ml-auto">
-                  Obligatorio
-                </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field
-                  label="Nombre del emprendimiento"
+                  label="Nombre del emprendimiento (opcional)"
                   register={register}
                   name="company_name"
                   errors={errors}
                   placeholder="Ej: Dulces Artesanales"
                   className="md:col-span-2"
+                  maxLength={100}
                 />
                 <Field
                   label="Nicho"
@@ -545,6 +508,7 @@ export default function Register() {
                   name="niche"
                   errors={errors}
                   placeholder="Ej: Ropa, Accesorios, Deco"
+                  maxLength={100}
                 />
                 <Field
                   label="Red social o web"
@@ -553,6 +517,7 @@ export default function Register() {
                   errors={errors}
                   type="url"
                   placeholder="https://instagram.com/tutienda"
+                  maxLength={500}
                 />
               </div>
             </section>
@@ -564,33 +529,47 @@ export default function Register() {
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
                   5
                 </div>
-                <h3 className="text-lg font-black text-gray-900">Ubicación</h3>
+                <h3 className="text-lg font-black text-gray-900">Envíos</h3>
                 <span className="text-[11px] text-gray-400 font-medium ml-auto">
-                  Obligatorio
+                  Opcional
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Field
-                  label="Provincia"
-                  register={register}
-                  name="province"
-                  errors={errors}
-                  options={provinces}
-                />
-                <Field
-                  label="Ciudad"
-                  register={register}
-                  name="city"
-                  errors={errors}
-                  placeholder="Ej: Córdoba Capital"
-                />
-                <Field
-                  label="Dirección"
-                  register={register}
-                  name="address"
-                  errors={errors}
-                  placeholder="Opcional"
-                />
+              <p className="text-sm text-gray-500 mb-4">
+                ¿Cómo entregás tus productos?
+              </p>
+              <div className="flex gap-4">
+                <label className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-200 border-gray-200 hover:border-emerald-200">
+                  <input
+                    type="radio"
+                    value="delivery"
+                    {...register("delivery_option")}
+                    className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0"
+                  />
+                  <div>
+                    <p className="font-bold text-gray-800 text-sm">
+                      Envío a domicilio
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Llevo mis productos hasta la puerta del cliente
+                    </p>
+                  </div>
+                </label>
+                <label className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-200 border-gray-200 hover:border-emerald-200">
+                  <input
+                    type="radio"
+                    value="pickup"
+                    {...register("delivery_option")}
+                    className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0"
+                  />
+                  <div>
+                    <p className="font-bold text-gray-800 text-sm">
+                      Punto de encuentro
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Coordinamos un lugar para entregar en persona
+                    </p>
+                  </div>
+                </label>
               </div>
             </section>
 

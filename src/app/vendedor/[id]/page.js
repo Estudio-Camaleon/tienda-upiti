@@ -315,12 +315,20 @@ export default function SellerProfile() {
         className="bg-white rounded-3xl border border-gray-100 overflow-hidden mb-8 relative"
         style={{ boxShadow: `0 0 0 1px ${themeColor}08` }}
       >
-        <div
-          className="h-28 sm:h-32 w-full"
-          style={{
-            background: `linear-gradient(135deg, ${themeColor}20, ${themeColor}08)`,
-          }}
-        />
+        {seller.banner_url ? (
+          <img
+            src={seller.banner_url}
+            alt="Banner"
+            className="h-28 sm:h-32 w-full object-cover"
+          />
+        ) : (
+          <div
+            className="h-28 sm:h-32 w-full"
+            style={{
+              background: `linear-gradient(135deg, ${themeColor}20, ${themeColor}08)`,
+            }}
+          />
+        )}
 
         <div className="px-6 sm:px-8 pb-6 sm:pb-8 -mt-14 sm:-mt-16 relative z-10">
           <div className="flex flex-col sm:flex-row items-start gap-5">
@@ -332,7 +340,7 @@ export default function SellerProfile() {
 
             <div className="flex-1 pt-2 sm:pt-6 w-full">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <h1 className="text-2xl sm:text-3xl font-black text-gray-900">
+                <h1 className="break-words text-2xl sm:text-3xl font-black text-gray-900">
                   {seller.company_name ||
                     `${seller.first_name} ${seller.last_name}`}
                 </h1>
@@ -347,12 +355,29 @@ export default function SellerProfile() {
               </div>
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-sm text-gray-500">
-                {seller.niche && <span>{seller.niche}</span>}
-                {seller.city && seller.province && (
+                {seller.niche && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {seller.niche.split(",").map((n, i) => (
+                      <span
+                        key={i}
+                        className="text-xs font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: `${themeColor}15`,
+                          color: themeColor,
+                        }}
+                      >
+                        {n.trim()}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {seller.delivery_option && (
                   <>
                     <span className="text-gray-300">•</span>
-                    <span>
-                      {seller.city}, {seller.province}
+                    <span className="text-xs">
+                      {seller.delivery_option === "delivery"
+                        ? "Envío a domicilio"
+                        : "Punto de encuentro"}
                     </span>
                   </>
                 )}
@@ -503,54 +528,72 @@ export default function SellerProfile() {
               {seller.niche && (
                 <div className="flex justify-between">
                   <span className="text-gray-400">Nicho</span>
-                  <span className="font-medium text-gray-900">
-                    {seller.niche}
+                  <span className="font-medium text-gray-900 text-right">
+                    {seller.niche
+                      .split(",")
+                      .map((n) => n.trim())
+                      .join(", ")}
                   </span>
                 </div>
               )}
-              {seller.city && (
+              {seller.delivery_option && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Ubicacion</span>
-                  <span className="font-medium text-gray-900">
-                    {seller.city}
-                    {seller.province ? `, ${seller.province}` : ""}
-                  </span>
-                </div>
-              )}
-              {seller.address && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Direccion</span>
-                  <span className="font-medium text-gray-900 text-right max-w-[60%]">
-                    {seller.address}
+                  <span className="text-gray-400">Entrega</span>
+                  <span className="font-medium text-gray-900 text-right">
+                    {seller.delivery_option === "delivery"
+                      ? "Envío a domicilio"
+                      : "Punto de encuentro"}
                   </span>
                 </div>
               )}
             </div>
           </div>
 
-          {seller.social_links && (
-            <a
-              href={seller.social_links}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-sm border transition-all min-h-[44px]"
-              style={{
-                color: themeColor,
-                borderColor: `${themeColor}30`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = `${themeColor}08`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "";
-              }}
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-              </svg>
-              Redes Sociales
-            </a>
-          )}
+          {(() => {
+            let links = [];
+            if (seller.social_links) {
+              try {
+                const parsed = JSON.parse(seller.social_links);
+                if (Array.isArray(parsed)) links = parsed;
+              } catch {
+                links = seller.social_links.trim()
+                  ? [{ label: "Red Social", url: seller.social_links }]
+                  : [];
+              }
+            }
+            return links.length > 0 ? (
+              <div className="space-y-2">
+                {links.map((link, i) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-sm border transition-all min-h-[44px]"
+                    style={{
+                      color: themeColor,
+                      borderColor: `${themeColor}30`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = `${themeColor}08`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "";
+                    }}
+                  >
+                    <svg
+                      className="w-4 h-4 shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z" />
+                    </svg>
+                    {link.label || "Enlace"}
+                  </a>
+                ))}
+              </div>
+            ) : null;
+          })()}
 
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <div className="flex items-start justify-between gap-4 mb-5">
@@ -595,6 +638,7 @@ export default function SellerProfile() {
                 <textarea
                   {...register("comment")}
                   placeholder="Escribí tu experiencia con este vendedor..."
+                  maxLength={1000}
                   className={`w-full px-4 py-3 sm:py-2.5 rounded-xl border outline-none text-sm h-24 sm:h-20 resize-none transition-all ${errors.comment ? "border-red-300" : "border-gray-200"}`}
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = themeColor;
@@ -685,7 +729,9 @@ export default function SellerProfile() {
                         <StarRating rating={rev.rating} />
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600">{rev.comment}</p>
+                    <p className="break-words text-sm text-gray-600">
+                      {rev.comment}
+                    </p>
                   </motion.div>
                 ))
               )}

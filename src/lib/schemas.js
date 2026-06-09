@@ -7,12 +7,17 @@ export const loginSchema = z.object({
 
 export const registerSchema = z
   .object({
-    email: z.string().trim().min(1, "Requerido").email("Email inválido"),
-    password: z.string().min(8, "Mínimo 8 caracteres"),
-    confirmPassword: z.string().min(8, "Mínimo 8 caracteres"),
-    first_name: z.string().trim().min(1, "Requerido"),
-    last_name: z.string().trim().min(1, "Requerido"),
-    company_name: z.string().trim().min(1, "Requerido"),
+    email: z
+      .string()
+      .trim()
+      .min(1, "Requerido")
+      .email("Email inválido")
+      .max(254),
+    password: z.string().min(8, "Mínimo 8 caracteres").max(128),
+    confirmPassword: z.string().min(8, "Mínimo 8 caracteres").max(128),
+    first_name: z.string().trim().min(1, "Requerido").max(50),
+    last_name: z.string().trim().min(1, "Requerido").max(50),
+    company_name: z.string().trim().max(100).optional(),
     whatsapp_region: z
       .string()
       .trim()
@@ -25,15 +30,13 @@ export const registerSchema = z
       .string()
       .trim()
       .regex(/^\d{6,8}$/, "Ej: 9999999"),
-    province: z.string().trim().min(1, "Requerido"),
-    city: z.string().trim().min(1, "Requerido"),
-    address: z.string().trim().optional(),
-    birthdate: z.string().optional(),
-    niche: z.string().trim().optional(),
+    delivery_option: z.enum(["delivery", "pickup"]).optional(),
+    niche: z.string().trim().max(100).optional(),
     social_links: z
       .string()
       .trim()
       .url("URL inválida")
+      .max(500)
       .optional()
       .or(z.literal("")),
     terms: z.literal(true, {
@@ -49,17 +52,20 @@ export const registerSchema = z
   });
 
 export const productSchema = z.object({
-  name: z.string().min(1, "Requerido"),
-  brand: z.string().optional(),
-  category: z.string().min(1, "Requerido"),
-  price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Precio inválido"),
-  description: z.string().optional(),
+  name: z.string().trim().min(1, "Requerido").max(100),
+  brand: z.string().trim().max(50).optional(),
+  category: z.string().trim().min(1, "Requerido").max(50),
+  price: z
+    .string()
+    .trim()
+    .regex(/^\d+(\.\d{1,2})?$/, "Precio inválido"),
+  description: z.string().trim().max(1000).optional(),
 });
 
 export const profileSchema = z.object({
-  first_name: z.string().trim().min(1, "Requerido"),
-  last_name: z.string().trim().min(1, "Requerido"),
-  company_name: z.string().trim().min(1, "Requerido"),
+  first_name: z.string().trim().min(1, "Requerido").max(50),
+  last_name: z.string().trim().min(1, "Requerido").max(50),
+  company_name: z.string().trim().max(100).optional(),
   whatsapp_region: z
     .string()
     .trim()
@@ -72,20 +78,19 @@ export const profileSchema = z.object({
     .string()
     .trim()
     .regex(/^\d{6,8}$/, "Ej: 9999999"),
-  province: z.string().trim().min(1, "Requerido"),
-  city: z.string().trim().min(1, "Requerido"),
-  address: z.string().trim().optional(),
-  birthdate: z.string().optional(),
-  niche: z.string().trim().optional(),
-  social_links: z
-    .string()
-    .trim()
-    .url("URL inválida")
-    .optional()
-    .or(z.literal("")),
+  delivery_option: z.enum(["delivery", "pickup"]).optional(),
+  niches: z.array(z.string().trim().max(100)).optional(),
+  socialLinks: z
+    .array(
+      z.object({
+        label: z.string().min(1, "Requerido").max(30),
+        url: z.string().trim().url("URL inválida").max(500),
+      }),
+    )
+    .optional(),
 });
 
 export const reviewSchema = z.object({
   rating: z.coerce.number().min(1).max(5),
-  comment: z.string().min(1, "Escribí tu experiencia"),
+  comment: z.string().trim().min(1, "Escribí tu experiencia").max(1000),
 });

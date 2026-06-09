@@ -28,7 +28,7 @@ export default function Privacidad() {
             </h2>
             <p>
               Al registrarte recopilamos tu nombre, correo electrónico, número
-              de WhatsApp, provincia, ciudad, foto de perfil, y datos de tu
+              de WhatsApp, foto de perfil, tipo de entrega, y datos de tu
               emprendimiento. Estos datos son necesarios para operar la
               plataforma.
             </p>

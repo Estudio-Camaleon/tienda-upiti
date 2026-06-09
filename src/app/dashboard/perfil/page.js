@@ -99,32 +99,6 @@ const countries = [
   { code: "961", name: "Líbano" },
 ];
 
-const provinces = [
-  "Buenos Aires",
-  "Catamarca",
-  "Chaco",
-  "Chubut",
-  "Córdoba",
-  "Corrientes",
-  "Entre Ríos",
-  "Formosa",
-  "Jujuy",
-  "La Pampa",
-  "La Rioja",
-  "Mendoza",
-  "Misiones",
-  "Neuquén",
-  "Río Negro",
-  "Salta",
-  "San Juan",
-  "San Luis",
-  "Santa Cruz",
-  "Santa Fe",
-  "Santiago del Estero",
-  "Tierra del Fuego",
-  "Tucumán",
-];
-
 function LoadingSkeleton() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 animate-pulse">
@@ -159,6 +133,11 @@ export default function EditProfile() {
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
   const [currentAvatar, setCurrentAvatar] = useState("");
+  const [niches, setNiches] = useState([]);
+  const [socialLinks, setSocialLinks] = useState([]);
+  const [bannerFile, setBannerFile] = useState(null);
+  const [currentBanner, setCurrentBanner] = useState("");
+  const [newNicheInput, setNewNicheInput] = useState("");
 
   const {
     register,
@@ -213,16 +192,31 @@ export default function EditProfile() {
                 whatsapp_number_local: match?.[3] || num.slice(5) || "",
               };
 
+        const parsedNiches = data.niche
+          ? data.niche
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+        let parsedLinks = [];
+        if (data.social_links) {
+          try {
+            const parsed = JSON.parse(data.social_links);
+            if (Array.isArray(parsed)) parsedLinks = parsed;
+          } catch {
+            parsedLinks = data.social_links.trim()
+              ? [{ label: "Red Social", url: data.social_links }]
+              : [];
+          }
+        }
+        setNiches(parsedNiches);
+        setSocialLinks(parsedLinks);
+        setCurrentBanner(data.banner_url || "");
         reset({
           first_name: data.first_name || "",
           last_name: data.last_name || "",
           company_name: data.company_name || "",
-          province: data.province || "",
-          city: data.city || "",
-          address: data.address || "",
-          niche: data.niche || "",
-          social_links: data.social_links || "",
-          birthdate: data.birthdate || "",
+          delivery_option: data.delivery_option || "",
           whatsapp_region: parts.whatsapp_region,
           whatsapp_area: parts.whatsapp_area,
           whatsapp_number_local: parts.whatsapp_number_local,
@@ -233,16 +227,18 @@ export default function EditProfile() {
           const pending = localStorage.getItem("pending_profile");
           if (pending) {
             const pd = JSON.parse(pending);
+            const parsedNiches = pd.niche
+              ? pd.niche
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : [];
+            setNiches(parsedNiches);
             reset({
               first_name: pd.first_name || "",
               last_name: pd.last_name || "",
               company_name: pd.company_name || "",
-              province: pd.province || "",
-              city: pd.city || "",
-              address: pd.address || "",
-              niche: pd.niche || "",
-              social_links: pd.social_links || "",
-              birthdate: pd.birthdate || "",
+              delivery_option: pd.delivery_option || "",
               whatsapp_region: pd.whatsapp_region || "",
               whatsapp_area: pd.whatsapp_area || "",
               whatsapp_number_local: pd.whatsapp_number_local || "",
@@ -260,25 +256,34 @@ export default function EditProfile() {
     loadProfile();
   }, [addToast, router, reset]);
 
+  const uploadFile = async (file, bucket, folder) => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${user.id}/${folder}/${crypto.randomUUID()}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file, { upsert: true });
+    if (uploadError) throw new Error(uploadError.message);
+    const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
+    return data.publicUrl;
+  };
+
   const onSubmitProfile = async (formData) => {
     setSaving(true);
     let newAvatarUrl = currentAvatar;
+    let newBannerUrl = currentBanner;
 
-    if (avatarFile) {
-      const fileExt = avatarFile.name.split(".").pop();
-      const fileName = `${user.id}/avatar.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, avatarFile, { upsert: true });
-
-      if (uploadError) {
-        addToast("Error al subir la imagen: " + uploadError.message, "error");
-      } else {
-        const { data } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(fileName);
-        newAvatarUrl = data.publicUrl;
+    try {
+      if (avatarFile) {
+        newAvatarUrl = await uploadFile(avatarFile, "avatars", "avatar");
       }
+
+      if (bannerFile) {
+        newBannerUrl = await uploadFile(bannerFile, "banners", "banner");
+      }
+    } catch (err) {
+      addToast("Error al subir imagen: " + err.message, "error");
+      setSaving(false);
+      return;
     }
 
     const whatsapp_number = concatParts(
@@ -291,23 +296,25 @@ export default function EditProfile() {
     const whatsapp_number_local =
       onlyDigits(formData.whatsapp_number_local) || null;
 
+    const nicheStr = niches.length > 0 ? niches.join(",") : null;
+    const socialLinksStr =
+      socialLinks.length > 0 ? JSON.stringify(socialLinks) : null;
+
     const { error } = await supabase
       .from("profiles")
       .update({
         first_name: formData.first_name,
         last_name: formData.last_name,
         company_name: formData.company_name,
-        province: formData.province,
-        city: formData.city,
-        address: formData.address || null,
-        niche: formData.niche || null,
-        social_links: formData.social_links || null,
-        birthdate: formData.birthdate || null,
+        delivery_option: formData.delivery_option || null,
+        niche: nicheStr,
+        social_links: socialLinksStr,
         whatsapp_number,
         whatsapp_region,
         whatsapp_area,
         whatsapp_number_local,
         avatar_url: newAvatarUrl,
+        banner_url: newBannerUrl || null,
       })
       .eq("id", user?.id);
 
@@ -315,6 +322,7 @@ export default function EditProfile() {
     else {
       addToast("Perfil actualizado con éxito.", "success");
       setCurrentAvatar(newAvatarUrl);
+      setCurrentBanner(newBannerUrl);
     }
     setSaving(false);
   };
@@ -396,12 +404,14 @@ export default function EditProfile() {
 
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            Nombre del emprendimiento
+            Nombre del emprendimiento{" "}
+            <span className="text-gray-400 font-normal">(opcional)</span>
           </label>
           <input
             type="text"
             {...register("company_name")}
             placeholder="Ej: Dulces Artesanales"
+            maxLength={100}
             className={inputClass("company_name")}
           />
           {errors.company_name && (
@@ -418,6 +428,7 @@ export default function EditProfile() {
             type="text"
             {...register("first_name")}
             placeholder="Tu nombre"
+            maxLength={50}
             className={inputClass("first_name")}
           />
           {errors.first_name && (
@@ -434,6 +445,7 @@ export default function EditProfile() {
             type="text"
             {...register("last_name")}
             placeholder="Tu apellido"
+            maxLength={50}
             className={inputClass("last_name")}
           />
           {errors.last_name && (
@@ -479,90 +491,264 @@ export default function EditProfile() {
             </p>
           )}
         </div>
-        <div>
+        <div className="md:col-span-2">
           <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            Nicho
+            Nichos{" "}
+            <span className="text-gray-400 font-normal">(elegí uno o más)</span>
           </label>
-          <input
-            type="text"
-            {...register("niche")}
-            placeholder="Ej: Ropa, Accesorios, Deco"
-            className={inputClass("niche")}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            Provincia
-          </label>
-          <select
-            {...register("province")}
-            className={`w-full px-4 py-3 rounded-xl border outline-none text-sm bg-white transition-shadow focus:ring-2 ${errors.province ? "border-red-400 focus:ring-red-500/20" : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"}`}
-          >
-            <option value="">Seleccioná una provincia</option>
-            {provinces.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {niches.map((n, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full"
+              >
+                {n}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setNiches((prev) => prev.filter((_, j) => j !== i))
+                  }
+                  className="hover:text-red-500 transition-colors"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </span>
             ))}
-          </select>
-          {errors.province && (
-            <p className="text-red-500 text-xs mt-1 font-medium">
-              {errors.province.message}
-            </p>
-          )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newNicheInput}
+              onChange={(e) => setNewNicheInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const val = newNicheInput.trim();
+                  if (val && !niches.includes(val)) {
+                    setNiches((prev) => [...prev, val]);
+                  }
+                  setNewNicheInput("");
+                }
+              }}
+              placeholder="Escribí un nicho y presioná Enter"
+              maxLength={100}
+              className="flex-1 px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const val = newNicheInput.trim();
+                if (val && !niches.includes(val)) {
+                  setNiches((prev) => [...prev, val]);
+                }
+                setNewNicheInput("");
+              }}
+              className="px-4 py-3 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition-colors"
+            >
+              Agregar
+            </button>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            Ciudad
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            Tipo de entrega
           </label>
-          <input
-            type="text"
-            {...register("city")}
-            placeholder="Ej: Crdoba Capital"
-            className={inputClass("city")}
-          />
-          {errors.city && (
-            <p className="text-red-500 text-xs mt-1 font-medium">
-              {errors.city.message}
-            </p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            Fecha de nacimiento
-          </label>
-          <input
-            type="date"
-            {...register("birthdate")}
-            className={inputClass("birthdate")}
-          />
+          <p className="text-xs text-gray-500 mb-3">
+            ¿Cómo entregás tus productos?
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <label className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-200 border-gray-200 hover:border-emerald-200">
+              <input
+                type="radio"
+                value="delivery"
+                {...register("delivery_option")}
+                className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0"
+              />
+              <div>
+                <p className="font-bold text-gray-800 text-sm">
+                  Envío a domicilio
+                </p>
+                <p className="text-xs text-gray-400">
+                  Llevo mis productos hasta la puerta del cliente
+                </p>
+              </div>
+            </label>
+            <label className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-200 border-gray-200 hover:border-emerald-200">
+              <input
+                type="radio"
+                value="pickup"
+                {...register("delivery_option")}
+                className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0"
+              />
+              <div>
+                <p className="font-bold text-gray-800 text-sm">
+                  Punto de encuentro
+                </p>
+                <p className="text-xs text-gray-400">
+                  Coordinamos un lugar para entregar en persona
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            Dirección
+            Redes sociales y sitio web
           </label>
-          <input
-            type="text"
-            {...register("address")}
-            placeholder="Opcional"
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm"
-          />
+          <div className="space-y-2">
+            {socialLinks.map((link, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <select
+                  value={link.label}
+                  onChange={(e) =>
+                    setSocialLinks((prev) =>
+                      prev.map((l, j) =>
+                        j === i ? { ...l, label: e.target.value } : l,
+                      ),
+                    )
+                  }
+                  className="w-[140px] shrink-0 px-3 py-3 rounded-xl border border-gray-200 outline-none text-sm bg-white"
+                >
+                  {[
+                    "Instagram",
+                    "Facebook",
+                    "TikTok",
+                    "YouTube",
+                    "Twitter / X",
+                    "LinkedIn",
+                    "Pinterest",
+                    "Sitio Web",
+                    "Otro",
+                  ].map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="url"
+                  value={link.url}
+                  onChange={(e) =>
+                    setSocialLinks((prev) =>
+                      prev.map((l, j) =>
+                        j === i ? { ...l, url: e.target.value } : l,
+                      ),
+                    )
+                  }
+                  placeholder="https://..."
+                  maxLength={500}
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSocialLinks((prev) => prev.filter((_, j) => j !== i))
+                  }
+                  className="p-3 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              setSocialLinks((prev) => [
+                ...prev,
+                { label: "Instagram", url: "" },
+              ])
+            }
+            className="mt-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+          >
+            + Agregar red social
+          </button>
         </div>
+
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            Red social o web
+            Banner del perfil{" "}
+            <span className="text-gray-400 font-normal">(opcional)</span>
           </label>
-          <input
-            type="url"
-            {...register("social_links")}
-            placeholder="https://instagram.com/tutienda"
-            className={inputClass("social_links")}
-          />
-          {errors.social_links && (
-            <p className="text-red-500 text-xs mt-1 font-medium">
-              {errors.social_links.message}
-            </p>
+          {currentBanner && (
+            <div className="relative mb-3 rounded-xl overflow-hidden border border-gray-200">
+              <img
+                src={currentBanner}
+                alt="Banner actual"
+                className="w-full h-32 sm:h-40 object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentBanner("");
+                  setBannerFile(null);
+                }}
+                className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-1.5 shadow-sm transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
           )}
+          {bannerFile && (
+            <div className="relative mb-3 rounded-xl overflow-hidden border border-gray-200">
+              <img
+                src={URL.createObjectURL(bannerFile)}
+                alt="Nuevo banner"
+                className="w-full h-32 sm:h-40 object-cover"
+              />
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setBannerFile(file);
+                setCurrentBanner("");
+              }
+            }}
+            className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">
+            PNG o JPG. Recomendado: 1200x400 px.
+          </p>
         </div>
 
         <div className="md:col-span-2 mt-4">

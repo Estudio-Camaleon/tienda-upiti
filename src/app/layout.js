@@ -4,6 +4,7 @@ import { StoreConfigProvider } from "../context/StoreConfigContext";
 import { ToastProvider } from "../context/ToastContext";
 import { ConfirmProvider } from "../context/ConfirmContext";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 import ThemeColor from "../components/ThemeColor";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -59,7 +60,8 @@ export default function RootLayout({ children }) {
             <ToastProvider>
               <ThemeColor />
               <Header />
-              {children}
+              <main className="flex-1">{children}</main>
+              <Footer />
             </ToastProvider>
           </ConfirmProvider>
         </StoreConfigProvider>

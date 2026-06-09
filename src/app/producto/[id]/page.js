@@ -53,9 +53,11 @@ function SellerCard({ seller, themeColor }) {
           <p className="font-bold text-gray-900 text-sm truncate">
             {seller.company_name || `${seller.first_name} ${seller.last_name}`}
           </p>
-          {seller.city && seller.province && (
+          {seller.delivery_option && (
             <p className="text-xs text-gray-400 truncate">
-              {seller.city}, {seller.province}
+              {seller.delivery_option === "delivery"
+                ? "Envío a domicilio"
+                : "Punto de encuentro"}
             </p>
           )}
         </div>
@@ -267,17 +269,17 @@ export default function ProductDetail() {
                   {product.category}
                 </span>
                 {product.brand && (
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+                  <span className="max-w-[200px] truncate text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
                     {product.brand}
                   </span>
                 )}
               </div>
 
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 leading-tight mb-4">
+              <h1 className="break-words text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 leading-tight mb-4">
                 {product.name}
               </h1>
 
-              <p className="text-gray-600 leading-relaxed mb-6">
+              <p className="break-words text-gray-600 leading-relaxed mb-6">
                 {product.description}
               </p>
 
