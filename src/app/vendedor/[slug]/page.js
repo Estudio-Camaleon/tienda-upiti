@@ -203,7 +203,6 @@ export default function SellerProfile() {
     fetchData();
   }, [slug]);
 
-  // update meta tags client-side when seller loads
   useEffect(() => {
     if (loading) return;
     const title = seller
@@ -336,20 +335,12 @@ export default function SellerProfile() {
         className="bg-white rounded-3xl border border-gray-100 overflow-hidden mb-8 relative"
         style={{ boxShadow: `0 0 0 1px ${themeColor}08` }}
       >
-        {seller.banner_url ? (
-          <img
-            src={seller.banner_url}
-            alt="Banner"
-            className="h-28 sm:h-32 w-full object-cover"
-          />
-        ) : (
-          <div
-            className="h-28 sm:h-32 w-full"
-            style={{
-              background: `linear-gradient(135deg, ${themeColor}20, ${themeColor}08)`,
-            }}
-          />
-        )}
+        <div
+          className="h-28 sm:h-32 w-full transition-colors duration-500"
+          style={{
+            backgroundColor: seller.theme_color || "#f3f4f6",
+          }}
+        />
 
         <div className="px-6 sm:px-8 pb-6 sm:pb-8 -mt-14 sm:-mt-16 relative z-10">
           <div className="flex flex-col sm:flex-row items-start gap-5">

@@ -6,11 +6,7 @@ import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { profileSchema } from "../../../lib/schemas";
-import {
-  onlyDigits,
-  concatParts,
-  splitWhatsAppNumber,
-} from "../../../lib/phone";
+import { onlyDigits, concatParts } from "../../../lib/phone";
 import { generateBaseSlug, generateUniqueSlug } from "../../../lib/slug";
 import { useToast } from "../../../context/ToastContext";
 
@@ -100,6 +96,19 @@ const countries = [
   { code: "961", name: "Líbano" },
 ];
 
+const pastelColors = [
+  { hex: "#fecaca", name: "Rojo Pastel" },
+  { hex: "#fed7aa", name: "Naranja Pastel" },
+  { hex: "#fef08a", name: "Amarillo Pastel" },
+  { hex: "#bbf7d0", name: "Verde Pastel" },
+  { hex: "#a7f3d0", name: "Esmeralda Pastel" },
+  { hex: "#bae6fd", name: "Azul Pastel" },
+  { hex: "#c7d2fe", name: "Índigo Pastel" },
+  { hex: "#e9d5ff", name: "Púrpura Pastel" },
+  { hex: "#fbcfe8", name: "Rosa Pastel" },
+  { hex: "#f3f4f6", name: "Gris Pastel" },
+];
+
 function LoadingSkeleton() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 animate-pulse">
@@ -136,9 +145,8 @@ export default function EditProfile() {
   const [currentAvatar, setCurrentAvatar] = useState("");
   const [niches, setNiches] = useState([]);
   const [socialLinks, setSocialLinks] = useState([]);
-  const [bannerFile, setBannerFile] = useState(null);
-  const [currentBanner, setCurrentBanner] = useState("");
   const [newNicheInput, setNewNicheInput] = useState("");
+  const [themeColor, setThemeColor] = useState(pastelColors[0].hex);
 
   const {
     register,
@@ -173,14 +181,11 @@ export default function EditProfile() {
         .select("*")
         .eq("id", session.user.id)
         .single();
+
       if (data) {
-        // Normalize stored number to digits-only before attempting to split
         const raw = data.whatsapp_number || "";
         const num = String(raw).replace(/\D/g, "");
-        // Try to split into region (1-4), area (2-4), local (6-8)
         const match = num.match(/^(\d{1,4})(\d{2,4})(\d{6,8})$/);
-        // If the profile already contains separated parts use them, otherwise
-        // fall back to splitting the concatenated whatsapp_number
         const parts =
           data.whatsapp_region ||
           data.whatsapp_area ||
@@ -215,7 +220,7 @@ export default function EditProfile() {
         }
         setNiches(parsedNiches);
         setSocialLinks(parsedLinks);
-        setCurrentBanner(data.banner_url || "");
+        if (data.theme_color) setThemeColor(data.theme_color);
         reset({
           first_name: data.first_name || "",
           last_name: data.last_name || "",
@@ -280,15 +285,10 @@ export default function EditProfile() {
   const onSubmitProfile = async (formData) => {
     setSaving(true);
     let newAvatarUrl = currentAvatar;
-    let newBannerUrl = currentBanner;
 
     try {
       if (avatarFile) {
         newAvatarUrl = await uploadFile(avatarFile, "avatars", "avatar");
-      }
-
-      if (bannerFile) {
-        newBannerUrl = await uploadFile(bannerFile, "banners", "banner");
       }
     } catch (err) {
       addToast("Error al subir imagen: " + err.message, "error");
@@ -324,7 +324,7 @@ export default function EditProfile() {
         whatsapp_area,
         whatsapp_number_local,
         avatar_url: newAvatarUrl,
-        banner_url: newBannerUrl || null,
+        theme_color: themeColor,
       })
       .eq("id", user?.id);
 
@@ -339,7 +339,6 @@ export default function EditProfile() {
       await supabase.from("profiles").update({ slug }).eq("id", user?.id);
       addToast("Perfil actualizado con éxito.", "success");
       setCurrentAvatar(newAvatarUrl);
-      setCurrentBanner(newBannerUrl);
     }
     setSaving(false);
   };
@@ -400,6 +399,32 @@ export default function EditProfile() {
         onSubmit={handleSubmit(onSubmitProfile)}
         className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4"
       >
+        <div className="md:col-span-2 mb-4">
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            Color de Fondo del Perfil
+          </label>
+          <p className="text-xs text-gray-500 mb-3">
+            Elegí un color pastel para destacar tu encabezado.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {pastelColors.map((color) => (
+              <button
+                key={color.hex}
+                type="button"
+                onClick={() => setThemeColor(color.hex)}
+                className={`w-10 h-10 rounded-full cursor-pointer transition-all ${
+                  themeColor === color.hex
+                    ? "ring-2 ring-offset-2 ring-gray-800 scale-110"
+                    : "hover:scale-105 border border-gray-200"
+                }`}
+                style={{ backgroundColor: color.hex }}
+                title={color.name}
+                aria-label={`Seleccionar color ${color.name}`}
+              />
+            ))}
+          </div>
+        </div>
+
         <div className="md:col-span-2 flex items-center gap-6 mb-4">
           <img
             src={currentAvatar || "https://placehold.co/150"}
@@ -710,68 +735,6 @@ export default function EditProfile() {
           >
             + Agregar red social
           </button>
-        </div>
-
-        <div className="md:col-span-2">
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            Banner del perfil{" "}
-            <span className="text-gray-400 font-normal">(opcional)</span>
-          </label>
-          {currentBanner && (
-            <div className="relative mb-3 rounded-xl overflow-hidden border border-gray-200">
-              <img
-                src={currentBanner}
-                alt="Banner actual"
-                className="w-full h-32 sm:h-40 object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentBanner("");
-                  setBannerFile(null);
-                }}
-                className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-1.5 shadow-sm transition-colors"
-              >
-                <svg
-                  className="w-4 h-4 text-red-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-          )}
-          {bannerFile && (
-            <div className="relative mb-3 rounded-xl overflow-hidden border border-gray-200">
-              <img
-                src={URL.createObjectURL(bannerFile)}
-                alt="Nuevo banner"
-                className="w-full h-32 sm:h-40 object-cover"
-              />
-            </div>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                setBannerFile(file);
-                setCurrentBanner("");
-              }
-            }}
-            className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-          />
-          <p className="text-[11px] text-gray-400 mt-1">
-            PNG o JPG. Recomendado: 1200x400 px.
-          </p>
         </div>
 
         <div className="md:col-span-2 mt-4">

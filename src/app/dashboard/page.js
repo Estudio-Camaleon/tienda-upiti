@@ -836,11 +836,18 @@ function AdminDashboard() {
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, is_verified: next } : u)),
       );
-      const { error } = await supabase
+
+      // Add .select() here. Catch silent block.
+      const { data, error } = await supabase
         .from("profiles")
         .update({ is_verified: next })
-        .eq("id", userId);
+        .eq("id", userId)
+        .select();
+
       if (error) throw error;
+      if (!data || data.length === 0)
+        throw new Error("Sin permisos o regla RLS bloquea.");
+
       addToast(
         next ? "Usuario verificado." : "Verificación quitada.",
         "success",
