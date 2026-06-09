@@ -92,12 +92,7 @@ export default function Hero({ products, loading }) {
           }}
         />
       </div>
-      <div
-        className="absolute inset-0 -z-10"
-        style={{
-          background: `linear-gradient(to bottom right, ${themeColor}15 0%, ${themeColor}08 40%, white 70%, ${themeColor}10 100%)`,
-        }}
-      />
+
       <div
         className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none -z-10"
         style={{ backgroundColor: `${themeColor}15` }}
@@ -113,17 +108,17 @@ export default function Hero({ products, loading }) {
             <img
               src={logoUrl}
               alt={storeName}
-              className="w-40 h-40 object-contain"
+              className="w-50 h-50 object-contain"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.style.display = "none";
               }}
             />
           </div>
-          <p className="text-gray-600 text-sm sm:text-base mt-2 max-w-xl mx-auto font-medium">
-            Descubrí productos únicos de emprendedores locales. Comprá directo
-            por WhatsApp, sin intermediarios.
-          </p>
+          <strong>
+            <p>Descubrí productos únicos de emprendedores locales.</p>
+            <p>Comprá directo por WhatsApp, sin intermediarios.</p>
+          </strong>
         </div>
 
         {showCarousel ? (
