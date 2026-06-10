@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useStoreConfig } from "../context/StoreConfigContext";
 import { supabase } from "../lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import ProtectedImage from "./ProtectedImage";
 
 export default function Header() {
   const router = useRouter();
@@ -41,10 +42,11 @@ export default function Header() {
           onClick={() => setMenuOpen(false)}
         >
           {logo_image && (
-            <img
+            <ProtectedImage
               src={logo_image}
               alt="Logo"
-              className="h-10 w-auto object-contain"
+              className="h-10 w-auto"
+              imgClassName="object-contain"
             />
           )}
         </Link>

@@ -70,3 +70,41 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ═══════════════════════════════════════════════════
+   PROTECCIÓN DE IMÁGENES — Capa CSS global
+   ═══════════════════════════════════════════════════
+   user-select: none          → Evita selección de imagen
+   -webkit-user-drag: none    → Evita arrastrar (Safari/Chrome)
+   -webkit-touch-callout: none→ Oculta menú emergente en iOS/Safari
+   ═══════════════════════════════════════════════════ */
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Override: permitir selección de texto fuera de imágenes */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+span,
+a,
+button,
+label,
+input,
+textarea,
+select {
+  user-select: auto;
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+}

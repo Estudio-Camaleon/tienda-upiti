@@ -9,6 +9,7 @@ import { useStoreConfig } from "../../../context/StoreConfigContext";
 import { concatParts } from "../../../lib/phone";
 import ProductCard from "../../../components/ProductCard";
 import ShareButtons from "../../../components/ShareButtons";
+import ProtectedImage from "../../../components/ProtectedImage";
 import { toggleFavorite, isFavorited } from "../../../lib/interactions";
 
 function openWhatsApp(phone, product) {
@@ -52,10 +53,11 @@ function SellerCard({ seller, themeColor, product }) {
         Vendedor
       </h3>
       <div className="flex items-center gap-3">
-        <img
+        <ProtectedImage
           src={seller.avatar_url || "https://placehold.co/48"}
           alt={displayName}
-          className="w-12 h-12 rounded-full object-cover border border-gray-100"
+          className="w-12 h-12"
+          imgClassName="rounded-full object-cover border border-gray-100"
         />
         <div className="min-w-0 flex-1">
           <p className="font-bold text-gray-900 text-sm truncate">
@@ -356,10 +358,11 @@ export default function ProductDetail() {
                             : "border-transparent opacity-60 hover:opacity-100"
                         }`}
                       >
-                        <img
+                        <ProtectedImage
                           src={img}
                           alt=""
-                          className="w-full h-full object-cover"
+                          className="w-full h-full"
+                          imgClassName="object-cover"
                         />
                         {img.toLowerCase().endsWith(".gif") && (
                           <span className="absolute bottom-0 left-0 text-[8px] font-bold bg-black/60 text-white px-1 rounded-tr-md leading-tight">
@@ -373,10 +376,11 @@ export default function ProductDetail() {
 
                 {/* Main image */}
                 <div className="flex-1 relative h-[300px] sm:h-[400px] lg:h-[450px] flex items-center justify-center bg-gray-100 rounded-xl overflow-hidden">
-                  <img
+                  <ProtectedImage
                     src={allImages[selectedImageIndex]}
                     alt={product.name}
-                    className="max-w-full max-h-full w-full h-full object-contain p-2"
+                    className="max-w-full max-h-full w-full h-full"
+                    imgClassName="object-contain p-2"
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.src =
@@ -421,10 +425,11 @@ export default function ProductDetail() {
               </div>
             ) : (
               <div className="bg-gray-50 relative h-[300px] sm:h-[400px] lg:h-[450px] flex items-center justify-center">
-                <img
+                <ProtectedImage
                   src="https://placehold.co/600x600/eeeeee/999999?text=Sin+Imagen"
                   alt={product.name}
-                  className="max-w-full max-h-full w-full h-full object-contain p-2"
+                  className="max-w-full max-h-full w-full h-full"
+                  imgClassName="object-contain p-2"
                 />
                 <ShareButtons
                   url={

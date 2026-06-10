@@ -6,6 +6,7 @@ import { ConfirmProvider } from "../context/ConfirmContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ThemeColor from "../components/ThemeColor";
+import GlobalImageProtection from "../components/GlobalImageProtection";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -17,6 +18,11 @@ export const metadata = {
   },
   description:
     "Compra facil y rapido, enviando tu pedido directamente por WhatsApp.",
+  robots: {
+    index: true,
+    follow: true,
+    noimageindex: true,
+  },
   icons: {
     icon: "/media/logo/favicon.svg",
   },
@@ -59,6 +65,7 @@ export default function RootLayout({ children }) {
           <ConfirmProvider>
             <ToastProvider>
               <ThemeColor />
+              <GlobalImageProtection />
               <Header />
               <main className="flex-1">{children}</main>
               <Footer />

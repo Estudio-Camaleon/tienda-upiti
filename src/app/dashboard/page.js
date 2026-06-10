@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmContext";
 import ProductEditModal from "../../components/ProductEditModal";
+import ProtectedImage from "../../components/ProtectedImage";
 import { CATEGORIES, getCategoryFields } from "../../data/categories";
 import { CONFIG } from "../../data/config";
 import {
@@ -457,10 +458,11 @@ function SellerDashboard({ user }) {
                   >
                     <div className="aspect-[4/3] bg-gray-50 relative overflow-hidden">
                       {p.image ? (
-                        <img
+                        <ProtectedImage
                           src={p.image}
                           alt={p.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full"
+                          imgClassName="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-200">
@@ -629,10 +631,11 @@ function SellerDashboard({ user }) {
                   key={rev.id}
                   className="bg-gray-50 p-4 rounded-2xl flex items-start gap-3"
                 >
-                  <img
+                  <ProtectedImage
                     src={rev.reviewer?.avatar_url || "https://placehold.co/40"}
                     alt=""
-                    className="w-9 h-9 rounded-full object-cover shrink-0 mt-0.5"
+                    className="w-9 h-9 shrink-0 mt-0.5"
+                    imgClassName="rounded-full object-cover"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -791,13 +794,14 @@ function SellerDashboard({ user }) {
                     href={`/producto/${fav.product?.slug || fav.product_id}`}
                     className="shrink-0"
                   >
-                    <img
+                    <ProtectedImage
                       src={
                         fav.product?.image ||
                         "https://placehold.co/60/eeeeee/999999?text=No+Img"
                       }
                       alt={fav.product?.name || ""}
-                      className="w-14 h-14 rounded-xl object-cover"
+                      className="w-14 h-14"
+                      imgClassName="rounded-xl object-cover"
                     />
                   </Link>
                   <div className="flex-1 min-w-0">
@@ -863,12 +867,13 @@ function SellerDashboard({ user }) {
                     href={`/vendedor/${fol.followed?.slug || fol.followed_id}`}
                     className="shrink-0"
                   >
-                    <img
+                    <ProtectedImage
                       src={
                         fol.followed?.avatar_url || "https://placehold.co/48"
                       }
                       alt={fol.followed?.company_name || ""}
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-12 h-12"
+                      imgClassName="rounded-full object-cover"
                     />
                   </Link>
                   <div className="flex-1 min-w-0">
@@ -1161,10 +1166,11 @@ function SellerDashboard({ user }) {
                         }}
                       >
                         {imagePreviews[slot.index] ? (
-                          <img
+                          <ProtectedImage
                             src={imagePreviews[slot.index]}
                             alt=""
-                            className="w-full h-full absolute inset-0 object-cover rounded-xl"
+                            className="w-full h-full absolute inset-0"
+                            imgClassName="object-cover rounded-xl"
                           />
                         ) : (
                           <svg
@@ -1492,10 +1498,11 @@ function AdminDashboard() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {p.image && (
-                      <img
+                      <ProtectedImage
                         src={p.image}
                         alt=""
-                        className="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0"
+                        className="w-14 h-14 shrink-0"
+                        imgClassName="rounded-xl object-cover border border-gray-100"
                       />
                     )}
                     <div className="min-w-0">
@@ -1568,10 +1575,11 @@ function AdminDashboard() {
               className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm"
             >
               <div className="flex items-center gap-3 mb-2">
-                <img
+                <ProtectedImage
                   src={u.avatar_url || "https://placehold.co/40"}
                   alt=""
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-10 h-10"
+                  imgClassName="rounded-full object-cover"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900 truncate">
@@ -1638,10 +1646,11 @@ function AdminDashboard() {
             >
               <div className="flex items-start gap-3">
                 {p.image && (
-                  <img
+                  <ProtectedImage
                     src={p.image}
                     alt=""
-                    className="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0"
+                    className="w-14 h-14 shrink-0"
+                    imgClassName="rounded-xl object-cover border border-gray-100"
                   />
                 )}
                 <div className="flex-1 min-w-0">
@@ -1769,10 +1778,11 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-8 border-b pb-4">
         <div className="flex items-center gap-4">
           {profile?.role !== "admin" && (
-            <img
+            <ProtectedImage
               src={profile?.avatar_url || "https://placehold.co/48"}
               alt=""
-              className="w-12 h-12 rounded-full object-cover border border-gray-100"
+              className="w-12 h-12"
+              imgClassName="rounded-full object-cover border border-gray-100"
             />
           )}
           <div>

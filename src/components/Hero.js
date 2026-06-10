@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import useEmblaCarousel from "embla-carousel-react";
+import ProtectedImage from "./ProtectedImage";
 import Autoplay from "embla-carousel-autoplay";
 import { CONFIG } from "../data/config";
 import { useStoreConfig } from "../context/StoreConfigContext";
@@ -82,10 +83,11 @@ export default function Hero({ products, loading }) {
       style={{ "--theme-color": themeColor }}
     >
       <div className="absolute inset-0 -z-10">
-        <img
+        <ProtectedImage
           src={bgImage}
           alt=""
-          className="w-full h-full object-cover"
+          className="w-full h-full"
+          imgClassName="object-cover"
           onError={(e) => {
             e.target.onerror = null;
             e.target.style.display = "none";
@@ -105,10 +107,11 @@ export default function Hero({ products, loading }) {
       <div className="relative px-6 sm:px-10 py-8 sm:py-12 lg:py-16 max-w-7xl mx-auto">
         <div className="text-center mb-6 sm:mb-8">
           <div className="flex items-center justify-center">
-            <img
+            <ProtectedImage
               src={logoUrl}
               alt={storeName}
-              className="w-50 h-50 object-contain"
+              className="w-50 h-50"
+              imgClassName="object-contain"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.style.display = "none";
@@ -137,8 +140,9 @@ export default function Hero({ products, loading }) {
                           href={`/producto/${product.slug || product.id}`}
                           className="relative pt-[60%] bg-gray-100 overflow-hidden block"
                         >
-                          <img
-                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          <ProtectedImage
+                            className="absolute inset-0 w-full h-full"
+                            imgClassName="object-cover group-hover:scale-105 transition-transform duration-500"
                             src={
                               product.image ||
                               "https://placehold.co/400x260/eeeeee/999999?text=Sin+Imagen"

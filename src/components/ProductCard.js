@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { CONFIG } from "../data/config";
 import ShareButtons from "./ShareButtons";
+import ProtectedImage from "./ProtectedImage";
 import { toggleFavorite, isFavorited } from "../lib/interactions";
 
 function openWhatsApp(phone, product) {
@@ -49,8 +50,9 @@ export default function ProductCard({ product, index, currentUser }) {
         href={`/producto/${product.slug || product.id}`}
         className="relative pt-[80%] bg-gray-100 overflow-hidden block"
       >
-        <img
-          className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+        <ProtectedImage
+          className="absolute inset-0 w-full h-full"
+          imgClassName="object-cover group-hover:scale-110 transition-transform duration-700"
           src={
             product.image ||
             "https://placehold.co/600x600/eeeeee/999999?text=Sin+Imagen"

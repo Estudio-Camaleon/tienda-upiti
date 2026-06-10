@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { profileSchema } from "../../../lib/schemas";
 import { onlyDigits, concatParts } from "../../../lib/phone";
 import { generateBaseSlug, generateUniqueSlug } from "../../../lib/slug";
+import ProtectedImage from "../../../components/ProtectedImage";
 import { useToast } from "../../../context/ToastContext";
 
 const countries = [
@@ -426,10 +427,11 @@ export default function EditProfile() {
         </div>
 
         <div className="md:col-span-2 flex items-center gap-6 mb-4">
-          <img
+          <ProtectedImage
             src={currentAvatar || "https://placehold.co/150"}
             alt="Avatar"
-            className="w-24 h-24 rounded-full object-cover border border-gray-200"
+            className="w-24 h-24"
+            imgClassName="rounded-full object-cover border border-gray-200"
           />
           <div className="flex-1">
             <label className="block text-sm font-bold text-gray-700 mb-1">

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import ProtectedImage from "./ProtectedImage";
 import { productSchema } from "../lib/schemas";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../context/ToastContext";
@@ -359,10 +360,11 @@ export default function ProductEditModal({
                       >
                         {imagePreviews[slot.index] ? (
                           <>
-                            <img
+                            <ProtectedImage
                               src={imagePreviews[slot.index]}
                               alt=""
-                              className="w-full h-full absolute inset-0 object-cover rounded-xl"
+                              className="w-full h-full absolute inset-0"
+                              imgClassName="object-cover rounded-xl"
                             />
                             {imagePreviews[slot.index]
                               .toLowerCase()

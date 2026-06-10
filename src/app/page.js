@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Hero from "../components/Hero";
 import ProductCard from "../components/ProductCard";
+import ProtectedImage from "../components/ProtectedImage";
 import { supabase } from "../lib/supabase";
 
 const sortOptions = [
@@ -155,13 +156,14 @@ export default function Home() {
                         className="relative group rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 text-left cursor-pointer"
                       >
                         <div className="relative pt-[60%] bg-gray-100">
-                          <img
+                          <ProtectedImage
                             src={
                               cat.thumbnail ||
                               "https://placehold.co/400x240/eeeeee/999999?text=Categor%C3%ADa"
                             }
                             alt={cat.name}
-                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            className="absolute inset-0 w-full h-full"
+                            imgClassName="object-cover group-hover:scale-105 transition-transform duration-500"
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src =
