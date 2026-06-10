@@ -1,31 +1,31 @@
-## Getting Started
+# Upiti
 
-First, run the development server:
+**Upiti** es una plataforma web para que emprendedores y pequeños vendedores puedan crear su propia tienda online de forma sencilla y rápida. Cada vendedor obtiene un perfil público con sus productos, datos de contacto y redes sociales, todo desde un solo lugar.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Características principales
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Catálogo de productos** — cada vendedor puede publicar sus productos con imágenes, descripción y precio.
+- **Perfil público de vendedor** — los clientes pueden ver la información del vendedor, sus productos y reseñas.
+- **Sistema de reseñas** — compradores pueden calificar y comentar su experiencia.
+- **Contacto directo vía WhatsApp** — botón de contacto con pre-selección de país, código de área y número.
+- **Modo virtual / punto de encuentro** — el vendedor elige cómo entrega sus productos.
+- **Panel de administración** — los vendedores gestionan sus productos, perfil y métricas desde un dashboard.
+- **Roles de usuario** — vendedor y admin con permisos diferenciados.
 
-## npm run dev:mobile:
+## Stack tecnológico
 
-Este es un salvavidas. Al agregar -H 0.0.0.0, le indicas a Next.js que exponga tu servidor local a tu red Wi-Fi. Esto te permite tomar tu celular, poner la IP de tu computadora (por ejemplo, 192.168.1.5:3000) y probar cómo se ve y funciona el carrito táctilmente antes de subirlo a internet.
+| Capa | Tecnología |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Lenguaje | JavaScript (con TypeScript para type-checking) |
+| Estilos | Tailwind CSS v4 |
+| Base de datos | Supabase (PostgreSQL) |
+| Autenticación | Supabase Auth (email + contraseña) |
+| Archivos | Supabase Storage (buckets: avatars, products, banners) |
+| Formularios | react-hook-form + Zod |
+| Animaciones | Framer Motion |
+| Carruseles | Embla Carousel |
 
-## npm run lint:fix:
+## Licencia
 
-Ejecuta el analizador de código (ESLint) pero con la orden de arreglar automáticamente todos los problemas menores que encuentre, como variables declaradas que no usaste o errores de sintaxis.
-
-## npm run format:
-
-Revisa todos tus archivos dentro de la carpeta src/ y los formatea instantáneamente (arregla la indentación, los espacios, las comillas dobles/simples, etc.).
-
-## npm run clean:
-
-A veces Next.js guarda en caché archivos antiguos en la carpeta oculta .next. Si alguna vez notas que un cambio no se refleja en pantalla o algo se "traba", este script borra ese caché para forzar una compilación completamente limpia la próxima vez que corras npm run dev. (Nota: si usas Windows, este comando puede requerir usar Powershell o instalar la librería rimraf para que funcione correctamente).
+Proyecto privado — uso interno del equipo de desarrollo.

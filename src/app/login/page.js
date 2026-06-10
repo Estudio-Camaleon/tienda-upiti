@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -23,6 +23,21 @@ export default function Login() {
   } = useForm({ resolver: zodResolver(loginSchema) });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // ── Check session + URL params on mount ─────────────────────
+  useEffect(() => {
+    // If already logged in → dashboard
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.replace("/dashboard");
+    });
+  }, [router]);
+
+  // Show success banner if redirected after email confirmation
+  const confirmedBanner = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("confirmed") === "true",
+    [],
+  );
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -65,6 +80,34 @@ export default function Login() {
         <h2 className="text-3xl font-black text-center text-gray-900 mb-6">
           Iniciar Sesión
         </h2>
+        {confirmedBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl mb-4 text-sm font-semibold text-center"
+          >
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <svg
+                className="w-5 h-5 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>¡Correo confirmado!</span>
+            </div>
+            <p className="text-xs font-medium text-emerald-600">
+              Ahora iniciá sesión para acceder a tu cuenta.
+            </p>
+          </motion.div>
+        )}
+
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm font-semibold">
             {error}

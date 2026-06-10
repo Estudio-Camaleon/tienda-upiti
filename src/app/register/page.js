@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { registerSchema } from "../../lib/schemas";
 import { onlyDigits } from "../../lib/phone";
+import EmailConfirmationScreen from "../../components/EmailConfirmationScreen";
 
 function sanitize(obj) {
   for (const key of Object.keys(obj)) {
@@ -226,6 +227,41 @@ export default function Register() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [pendingUserId, setPendingUserId] = useState(null);
+  // ── Redirect if already authenticated ──────────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.replace("/dashboard");
+    });
+  }, [router]);
+
+  // Derive callback state from URL (no setState in effect)
+  const handlingCallback = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("confirmed") === "true",
+    [],
+  );
+
+  // ── Handle confirmation callback (?confirmed=true) ─────────────
+  useEffect(() => {
+    if (!handlingCallback) return;
+    // Give Supabase time to process URL auth tokens, then redirect
+    const timer = setTimeout(async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        router.replace("/dashboard");
+      } else {
+        // Tokens expired or invalid — redirect to login
+        router.replace("/login");
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [handlingCallback, router]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -237,6 +273,8 @@ export default function Register() {
   }, []);
 
   const password = useWatch({ control, name: "password" });
+  const confirmPassword = useWatch({ control, name: "confirmPassword" });
+  const passwordsMismatch = confirmPassword && password !== confirmPassword;
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -257,28 +295,26 @@ export default function Register() {
     };
 
     // Send to Supabase Auth
+    const redirectTo = `${
+      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+    }/register?confirmed=true`;
+
     const { data: auth, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
         data: cleanData, // Data saves here until confirm
-        emailRedirectTo: `${
-          process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-        }/login`,
+        emailRedirectTo: redirectTo,
       },
     });
 
     if (authError) {
-      if (authError.message?.toLowerCase().includes("already registered")) {
-        setError("Correo registrado. Iniciá sesión.");
-      } else {
-        setError("No pudimos crear cuenta. Verificá datos.");
-      }
+      setError(authError.message);
       setLoading(false);
       return;
     }
 
-    // Upload Avatar if exist
+    // Upload Avatar if exist (best-effort without session thx to anon key)
     let avatarUrl = null;
     if (data.avatar && data.avatar[0] && auth.user) {
       const file = data.avatar[0];
@@ -302,7 +338,9 @@ export default function Register() {
     }
 
     if (!auth.session) {
-      setError("Revisá correo. Confirmá cuenta.");
+      setPendingEmail(data.email);
+      setPendingUserId(auth.user?.id || null);
+      setPendingConfirmation(true);
       setLoading(false);
       return;
     }
@@ -310,6 +348,42 @@ export default function Register() {
     router.push("/dashboard");
     setLoading(false);
   };
+
+  // ── Show loading while processing confirmation redirect ─────
+  if (handlingCallback) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4 bg-gradient-to-b from-gray-50 to-gray-100">
+        <div className="text-center">
+          <svg
+            className="animate-spin h-8 w-8 text-emerald-500 mx-auto mb-4"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+              fill="none"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          <p className="text-gray-500 text-sm">Confirmando cuenta…</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (pendingConfirmation) {
+    return (
+      <EmailConfirmationScreen email={pendingEmail} userId={pendingUserId} />
+    );
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10 bg-gradient-to-b from-gray-50 to-gray-100">
@@ -374,6 +448,11 @@ export default function Register() {
                     type="password"
                     placeholder="Escribila de nuevo"
                   />
+                  {passwordsMismatch && (
+                    <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
+                      Las contraseñas no coinciden
+                    </p>
+                  )}
                 </div>
                 <div className="md:col-span-2 -mt-2">
                   <PasswordStrength password={password} />
