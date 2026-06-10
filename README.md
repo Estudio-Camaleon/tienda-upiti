@@ -1,31 +1,84 @@
-# Upiti
+# 🛍️ Tienda Upiti
 
-**Upiti** es una plataforma web para que emprendedores y pequeños vendedores puedan crear su propia tienda online de forma sencilla y rápida. Cada vendedor obtiene un perfil público con sus productos, datos de contacto y redes sociales, todo desde un solo lugar.
+Plataforma e-commerce moderna desarrollada por Estudio Camaleón, enfocada en rendimiento, experiencia de usuario y escalabilidad.
 
-## Características principales
+![demo](./public/demo.gif)
 
-- **Catálogo de productos** — cada vendedor puede publicar sus productos con imágenes, descripción y precio.
-- **Perfil público de vendedor** — los clientes pueden ver la información del vendedor, sus productos y reseñas.
-- **Sistema de reseñas** — compradores pueden calificar y comentar su experiencia.
-- **Contacto directo vía WhatsApp** — botón de contacto con pre-selección de país, código de área y número.
-- **Modo virtual / punto de encuentro** — el vendedor elige cómo entrega sus productos.
-- **Panel de administración** — los vendedores gestionan sus productos, perfil y métricas desde un dashboard.
-- **Roles de usuario** — vendedor y admin con permisos diferenciados.
+---
 
-## Stack tecnológico
+## ✨ Features
 
-| Capa | Tecnología |
-|---|---|
-| Framework | Next.js 16 (App Router) |
-| Lenguaje | JavaScript (con TypeScript para type-checking) |
-| Estilos | Tailwind CSS v4 |
-| Base de datos | Supabase (PostgreSQL) |
-| Autenticación | Supabase Auth (email + contraseña) |
-| Archivos | Supabase Storage (buckets: avatars, products, banners) |
-| Formularios | react-hook-form + Zod |
-| Animaciones | Framer Motion |
-| Carruseles | Embla Carousel |
+* 🛒 Carrito de compras dinámico
+* 🔐 Sistema de autenticación de usuarios
+* 📦 Gestión de productos
+* 📱 Diseño responsive (mobile-first)
+* ⚡ Optimización de rendimiento
 
-## Licencia
+---
 
-Proyecto privado — uso interno del equipo de desarrollo.
+## 🧠 Tecnologías utilizadas
+
+* Frontend: HTML, CSS, JavaScript / React (ajustar)
+* Backend: Node.js / API (ajustar)
+* Base de datos: (agregar si aplica)
+
+---
+
+## 🚀 Demo
+
+👉 https://tu-demo.vercel.app
+
+---
+
+## 📸 Screenshots
+
+![home](./public/screenshot1.png)
+![product](./public/screenshot2.png)
+
+---
+
+## ⚙️ Instalación
+
+```bash
+git clone https://github.com/Estudio-Camaleon/tienda-upiti.git
+cd tienda-upiti
+npm install
+npm run dev
+```
+
+---
+
+## 📂 Estructura del proyecto
+
+```
+/src
+  /components
+  /pages
+  /utils
+/public
+```
+
+---
+
+## 🤝 Contribuciones
+
+Las contribuciones son bienvenidas.
+
+1. Fork del proyecto
+2. Crear una rama (`feature/nueva-feature`)
+3. Commit (`feat: agregar nueva feature`)
+4. Push
+5. Pull Request
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la licencia MIT.
+
+---
+
+## 👨‍💻 Autor
+
+Desarrollado por Estudio Camaleón
+🌐 https://www.estudiocamaleontuc.com
