@@ -45,6 +45,7 @@ export default function ProductEditModal({
       brand: product?.brand || "",
       category: product?.category || "",
       price: product?.price?.toString() || "",
+      stock: product?.stock == null ? "" : product.stock.toString(),
       description: product?.description || "",
     },
   });
@@ -112,6 +113,8 @@ export default function ProductEditModal({
         brand: data.brand || null,
         category: data.category,
         price: Number(data.price),
+        stock:
+          data.stock === "" || data.stock == null ? null : Number(data.stock),
         description: data.description || null,
         image: finalImages[0] || product.image || null,
         images: finalImages,
@@ -266,6 +269,35 @@ export default function ProductEditModal({
                   {errors.price && (
                     <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
                       {errors.price.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                    Cantidad en stock{" "}
+                    <span className="text-gray-400 font-normal">
+                      (opcional)
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    {...register("stock")}
+                    placeholder="Ej: 10"
+                    className={`w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${
+                      errors.stock
+                        ? "border-red-400 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                    }`}
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Para restablecer stock, editá este número y guardá.
+                  </p>
+                  {errors.stock && (
+                    <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
+                      {errors.stock.message}
                     </p>
                   )}
                 </div>

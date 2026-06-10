@@ -65,6 +65,12 @@ export const productSchema = z.object({
     .string()
     .trim()
     .regex(/^\d+(\.\d{1,2})?$/, "Precio inválido"),
+  stock: z
+    .string()
+    .trim()
+    .regex(/^\d*$/, "Ingresá solo números")
+    .optional()
+    .or(z.literal("")),
   description: z.string().trim().max(1000).optional(),
 });
 

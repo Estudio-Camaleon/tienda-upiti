@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -140,6 +140,7 @@ function SellerDashboard({ user }) {
   const [favorites, setFavorites] = useState([]);
   const [followedSellers, setFollowedSellers] = useState([]);
   const [favFollowLoading, setFavFollowLoading] = useState(false);
+  const formRef = useRef(null);
 
   const {
     register,
@@ -153,6 +154,14 @@ function SellerDashboard({ user }) {
   const categoryFields = selectedCategory
     ? getCategoryFields(selectedCategory)
     : [];
+
+  useEffect(() => {
+    if (!showForm) return;
+    const timer = setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [showForm]);
 
   const loadProducts = async () => {
     const { data } = await supabase
@@ -248,6 +257,8 @@ function SellerDashboard({ user }) {
         brand: data.brand || null,
         category: data.category,
         price: Number(data.price),
+        stock:
+          data.stock === "" || data.stock == null ? null : Number(data.stock),
         description: data.description || null,
         image: uploadedUrls[0] || null,
         images: uploadedUrls,
@@ -374,7 +385,7 @@ function SellerDashboard({ user }) {
         <h2 className="text-2xl font-black text-gray-900">Mis Productos</h2>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => setShowForm((prev) => !prev)}
             className="text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl transition-colors"
           >
             {showForm ? "Cerrar" : "+ Producto"}
@@ -500,6 +511,19 @@ function SellerDashboard({ user }) {
                       <p className="text-emerald-600 font-black text-sm">
                         ${Number(p.price).toLocaleString("es-AR")}
                       </p>
+                      {p.stock != null && (
+                        <p
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                            Number(p.stock) > 0
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {Number(p.stock) > 0
+                            ? `${p.stock} en stock`
+                            : "Sin stock"}
+                        </p>
+                      )}
                       {p.description && (
                         <p className="text-xs text-gray-500 line-clamp-2">
                           {p.description}
@@ -928,6 +952,7 @@ function SellerDashboard({ user }) {
             className="overflow-hidden"
           >
             <div
+              ref={formRef}
               id="agregar-producto"
               className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 scroll-mt-24"
             >
@@ -1044,6 +1069,40 @@ function SellerDashboard({ user }) {
                   {errors.price && (
                     <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
                       {errors.price.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="stock"
+                    className="block text-sm font-bold text-gray-700 mb-1.5"
+                  >
+                    Cantidad en stock{" "}
+                    <span className="text-gray-400 font-normal">
+                      (opcional)
+                    </span>
+                  </label>
+                  <input
+                    id="stock"
+                    type="number"
+                    min="0"
+                    step="1"
+                    {...register("stock")}
+                    placeholder="Ej: 10"
+                    className={`w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${
+                      errors.stock
+                        ? "border-red-400 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                    }`}
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Si lo dejás vacío, no se mostrará stock. Si llega a 0,
+                    aparecerá como sin stock.
+                  </p>
+                  {errors.stock && (
+                    <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
+                      {errors.stock.message}
                     </p>
                   )}
                 </div>
