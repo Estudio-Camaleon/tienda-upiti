@@ -9,6 +9,22 @@ const LOCAL_POLL_INTERVAL = 3000; // ms — same-browser session check
 const SERVER_POLL_INTERVAL = 5000; // ms — cross-device confirmation check
 const TIMEOUT_MS = 5 * 60 * 1000; // 5 min — show timeout suggestion
 
+function formatResendError(error) {
+  const message = error?.message || "No pudimos reenviar el email.";
+  const lowerMessage = message.toLowerCase();
+
+  if (
+    lowerMessage.includes("rate limit") ||
+    lowerMessage.includes("too many") ||
+    lowerMessage.includes("exceeded") ||
+    lowerMessage.includes("security purposes")
+  ) {
+    return "Superaste el límite de reenvíos. Volvé a intentarlo en 1 hora.";
+  }
+
+  return message;
+}
+
 export default function EmailConfirmationScreen({ email, userId }) {
   const router = useRouter();
   const [status, setStatus] = useState("waiting"); // waiting | resending | confirmed | timeout
@@ -140,7 +156,7 @@ export default function EmailConfirmationScreen({ email, userId }) {
         });
       }, 1000);
     } catch (err) {
-      setError("No pudimos reenviar el email. Intentá de nuevo.");
+      setError(formatResendError(err));
       setStatus("waiting");
     }
   };

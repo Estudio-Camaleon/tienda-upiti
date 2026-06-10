@@ -17,6 +17,46 @@ export const CATEGORIES = [
   "Otros",
 ];
 
+export const SELLER_NICHES = [
+  "Ropa",
+  "Accesorios",
+  "Calzado",
+  "Bolsos y Carteras",
+  "Deco y Hogar",
+  "Arte",
+  "Juguetes",
+  "Libros",
+  "Música",
+  "Electrónica",
+  "Salud y Belleza",
+  "Deportes",
+  "Mascotas",
+  "Papelería",
+  "Servicios",
+  "Gastronomía",
+  "Pastelería",
+  "Artesanías",
+  "Regalería",
+  "Cosmética",
+  "Tecnología",
+  "Otros",
+];
+
+export const SELLER_FEATURES = [
+  "Venta minorista",
+  "Venta mayorista",
+  "Productos personalizados",
+  "Productos por encargo",
+  "Hecho a mano",
+  "Producción propia",
+  "Atención online",
+  "Local físico",
+  "Acepta transferencias",
+  "Acepta efectivo",
+  "Promociones",
+  "Envíos a coordinar",
+];
+
 /**
  * Category-specific extra fields.
  * Each entry defines an array of fields with:

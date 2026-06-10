@@ -16,6 +16,46 @@ function sanitize(obj) {
   }
 }
 
+function normalizeEmail(email) {
+  return String(email || "")
+    .trim()
+    .toLowerCase();
+}
+
+function isValidEmail(email) {
+  return /^\S+@\S+\.\S+$/.test(normalizeEmail(email));
+}
+
+async function checkEmailExists(email, signal) {
+  const res = await fetch("/api/check-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: normalizeEmail(email) }),
+    signal,
+  });
+
+  if (!res.ok) throw new Error("No pudimos verificar el correo.");
+
+  const data = await res.json();
+  return !!data.exists;
+}
+
+function formatAuthError(error) {
+  const message = error?.message || "No pudimos crear la cuenta.";
+  const lowerMessage = message.toLowerCase();
+
+  if (
+    lowerMessage.includes("rate limit") ||
+    lowerMessage.includes("too many") ||
+    lowerMessage.includes("exceeded") ||
+    lowerMessage.includes("security purposes")
+  ) {
+    return "Superaste el límite de intentos. Volvé a intentarlo en 1 hora.";
+  }
+
+  return message;
+}
+
 const countries = [
   { code: "54", name: "Argentina" },
   { code: "591", name: "Bolivia" },
@@ -230,6 +270,10 @@ export default function Register() {
   const [pendingConfirmation, setPendingConfirmation] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
   const [pendingUserId, setPendingUserId] = useState(null);
+  const [emailCheck, setEmailCheck] = useState({
+    email: "",
+    status: "idle", // idle | checking | available | exists | error
+  });
   // ── Redirect if already authenticated ──────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -254,10 +298,10 @@ export default function Register() {
         data: { session },
       } = await supabase.auth.getSession();
       if (session) {
-        router.replace("/dashboard");
+        router.replace("/login?confirmed=true");
       } else {
         // Tokens expired or invalid — redirect to login
-        router.replace("/login");
+        router.replace("/login?confirmed=true");
       }
     }, 3000);
     return () => clearTimeout(timer);
@@ -274,12 +318,66 @@ export default function Register() {
 
   const password = useWatch({ control, name: "password" });
   const confirmPassword = useWatch({ control, name: "confirmPassword" });
+  const email = useWatch({ control, name: "email" });
+  const normalizedEmail = normalizeEmail(email);
+  const canCheckEmail = isValidEmail(normalizedEmail);
+  const currentEmailCheck =
+    emailCheck.email === normalizedEmail ? emailCheck : null;
+  const emailAlreadyRegistered =
+    canCheckEmail && currentEmailCheck?.status === "exists";
   const passwordsMismatch = confirmPassword && password !== confirmPassword;
 
+  useEffect(() => {
+    if (!canCheckEmail) return;
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setEmailCheck({ email: normalizedEmail, status: "checking" });
+      try {
+        const exists = await checkEmailExists(
+          normalizedEmail,
+          controller.signal,
+        );
+        setEmailCheck({
+          email: normalizedEmail,
+          status: exists ? "exists" : "available",
+        });
+      } catch (err) {
+        if (err.name === "AbortError") return;
+        setEmailCheck({ email: normalizedEmail, status: "error" });
+      }
+    }, 500);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [canCheckEmail, normalizedEmail]);
+
   const onSubmit = async (data) => {
+    if (loading) return;
+
     setLoading(true);
     setError(null);
     sanitize(data);
+
+    try {
+      const exists = await checkEmailExists(data.email);
+      if (exists) {
+        setEmailCheck({ email: normalizeEmail(data.email), status: "exists" });
+        setError(
+          "Este correo ya está registrado. Iniciá sesión o recuperá tu contraseña.",
+        );
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setError(
+        "No pudimos verificar si el correo ya existe. Intentá de nuevo.",
+      );
+      setLoading(false);
+      return;
+    }
 
     // Clean data first
     const cleanData = {
@@ -309,7 +407,7 @@ export default function Register() {
     });
 
     if (authError) {
-      setError(authError.message);
+      setError(formatAuthError(authError));
       setLoading(false);
       return;
     }
@@ -422,14 +520,39 @@ export default function Register() {
                 <h3 className="text-lg font-black text-gray-900">Acceso</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field
-                  label="Correo electrónico"
-                  register={register}
-                  name="email"
-                  errors={errors}
-                  type="email"
-                  placeholder="ejemplo@correo.com"
-                />
+                <div>
+                  <Field
+                    label="Correo electrónico"
+                    register={register}
+                    name="email"
+                    errors={errors}
+                    type="email"
+                    placeholder="ejemplo@correo.com"
+                  />
+                  {canCheckEmail &&
+                    currentEmailCheck?.status === "checking" && (
+                      <p className="text-gray-400 text-xs mt-1 ml-1 font-medium">
+                        Verificando correo…
+                      </p>
+                    )}
+                  {canCheckEmail &&
+                    currentEmailCheck?.status === "available" && (
+                      <p className="text-emerald-600 text-xs mt-1 ml-1 font-medium">
+                        Correo disponible.
+                      </p>
+                    )}
+                  {emailAlreadyRegistered && (
+                    <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
+                      Este correo ya está registrado. Iniciá sesión o recuperá
+                      tu contraseña.
+                    </p>
+                  )}
+                  {canCheckEmail && currentEmailCheck?.status === "error" && (
+                    <p className="text-amber-600 text-xs mt-1 ml-1 font-medium">
+                      No pudimos verificar este correo ahora.
+                    </p>
+                  )}
+                </div>
                 <div />
                 <Field
                   label="Contraseña"
@@ -459,8 +582,6 @@ export default function Register() {
                 </div>
               </div>
             </section>
-
-            <hr className="border-gray-100" />
 
             <hr className="border-gray-100" />
 
@@ -496,107 +617,10 @@ export default function Register() {
               </div>
             </section>
 
-            <hr className="border-gray-100" />
-
             <section>
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
                   3
-                </div>
-                <h3 className="text-lg font-black text-gray-900">
-                  Tu emprendimiento
-                </h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field
-                  label="Nombre del emprendimiento (opcional)"
-                  register={register}
-                  name="company_name"
-                  errors={errors}
-                  placeholder="Ej: Dulces Artesanales"
-                  className="md:col-span-2"
-                  maxLength={100}
-                />
-                <Field
-                  label="Nicho"
-                  register={register}
-                  name="niche"
-                  errors={errors}
-                  placeholder="Ej: Ropa, Accesorios, Deco"
-                  maxLength={100}
-                />
-                <Field
-                  label="Red social o web"
-                  register={register}
-                  name="social_links"
-                  errors={errors}
-                  type="url"
-                  placeholder="https://instagram.com/tutienda"
-                  maxLength={500}
-                />
-              </div>
-            </section>
-
-            <hr className="border-gray-100" />
-
-            <section>
-              <div className="flex items-center gap-2 mb-5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
-                  4
-                </div>
-                <h3 className="text-lg font-black text-gray-900">Envíos</h3>
-              </div>
-              <p className="text-sm text-gray-500 mb-4">
-                ¿Cómo entregás tus productos?
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <label className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-200 border-gray-200 hover:border-emerald-200">
-                  <input
-                    type="checkbox"
-                    value="delivery"
-                    {...register("delivery_option")}
-                    className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0 rounded"
-                  />
-                  <div>
-                    <p className="font-bold text-gray-800 text-sm">
-                      Envío a domicilio
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Llevo mis productos hasta la puerta del cliente
-                    </p>
-                  </div>
-                </label>
-                <label className="flex-1 flex items-center gap-3 p-4 rounded-2xl border transition-colors cursor-pointer has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-200 border-gray-200 hover:border-emerald-200">
-                  <input
-                    type="checkbox"
-                    value="pickup"
-                    {...register("delivery_option")}
-                    className="w-5 h-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer shrink-0 rounded"
-                  />
-                  <div>
-                    <p className="font-bold text-gray-800 text-sm">
-                      Punto de encuentro
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Coordinamos un lugar para entregar en persona
-                    </p>
-                  </div>
-                </label>
-              </div>
-              {errors.delivery_option && (
-                <p className="text-red-500 text-xs font-medium mt-2">
-                  {errors.delivery_option.message ||
-                    errors.delivery_option.root?.message}
-                </p>
-              )}
-            </section>
-
-            <hr className="border-gray-100" />
-
-            <section>
-              <div className="flex items-center gap-2 mb-5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
-                  5
                 </div>
                 <h3 className="text-lg font-black text-gray-900">Contacto</h3>
                 <span className="text-[11px] text-gray-400 font-medium ml-auto">
@@ -658,7 +682,7 @@ export default function Register() {
             <section>
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
-                  5
+                  4
                 </div>
                 <h3 className="text-lg font-black text-gray-900">Legales</h3>
               </div>
@@ -718,7 +742,7 @@ export default function Register() {
             <motion.button
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.95 }}
-              disabled={loading}
+              disabled={loading || emailAlreadyRegistered}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-50 shadow-sm text-base"
             >
               {loading ? (

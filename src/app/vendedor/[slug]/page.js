@@ -521,6 +521,19 @@ export default function SellerProfile() {
                   })()}
               </div>
 
+              {seller.characteristics && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {seller.characteristics.split(",").map((feature, i) => (
+                    <span
+                      key={i}
+                      className="rounded-full bg-white/70 px-2.5 py-1 text-xs font-bold text-gray-600 ring-1 ring-gray-200"
+                    >
+                      {feature.trim()}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4">
                 <div className="flex items-center gap-1 bg-gray-50 px-2 sm:px-3 py-1.5 rounded-lg">
                   <svg

@@ -10,6 +10,7 @@ import { onlyDigits, concatParts } from "../../../lib/phone";
 import { generateBaseSlug, generateUniqueSlug } from "../../../lib/slug";
 import ProtectedImage from "../../../components/ProtectedImage";
 import { useToast } from "../../../context/ToastContext";
+import { SELLER_FEATURES, SELLER_NICHES } from "../../../data/categories";
 
 const countries = [
   { code: "54", name: "Argentina" },
@@ -110,6 +111,109 @@ const pastelColors = [
   { hex: "#f3f4f6", name: "Gris Pastel" },
 ];
 
+function normalizeTag(tag) {
+  return String(tag || "").trim();
+}
+
+function toggleTag(tags, tag) {
+  const cleanTag = normalizeTag(tag);
+  if (!cleanTag) return tags;
+  if (tags.includes(cleanTag)) return tags.filter((item) => item !== cleanTag);
+  return [...tags, cleanTag];
+}
+
+function TagPicker({
+  title,
+  helper,
+  options,
+  values,
+  setValues,
+  customValue,
+  setCustomValue,
+}) {
+  const addCustom = () => {
+    const value = normalizeTag(customValue);
+    if (!value || values.includes(value)) return;
+    setValues((prev) => [...prev, value]);
+    setCustomValue("");
+  };
+
+  return (
+    <div className="md:col-span-2 rounded-3xl border border-gray-100 bg-gray-50/50 p-5">
+      <label className="block text-sm font-bold text-gray-800 mb-1">
+        {title}
+      </label>
+      {helper && <p className="text-xs text-gray-500 mb-4">{helper}</p>}
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        {options.map((option) => {
+          const selected = values.includes(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setValues((prev) => toggleTag(prev, option))}
+              className={`rounded-full px-3 py-2 text-xs font-bold transition-colors ${
+                selected
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-emerald-50 hover:text-emerald-700"
+              }`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+
+      {values.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {values.map((value) => (
+            <span
+              key={value}
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700"
+            >
+              {value}
+              <button
+                type="button"
+                onClick={() =>
+                  setValues((prev) => prev.filter((item) => item !== value))
+                }
+                className="transition-colors hover:text-red-500"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={customValue}
+          onChange={(e) => setCustomValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addCustom();
+            }
+          }}
+          placeholder="No está en la lista? Escribilo acá"
+          maxLength={100}
+          className="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition-colors focus:border-emerald-500"
+        />
+        <button
+          type="button"
+          onClick={addCustom}
+          className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-100"
+        >
+          Agregar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function LoadingSkeleton() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 animate-pulse">
@@ -145,8 +249,10 @@ export default function EditProfile() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [currentAvatar, setCurrentAvatar] = useState("");
   const [niches, setNiches] = useState([]);
+  const [characteristics, setCharacteristics] = useState([]);
   const [socialLinks, setSocialLinks] = useState([]);
   const [newNicheInput, setNewNicheInput] = useState("");
+  const [newCharacteristicInput, setNewCharacteristicInput] = useState("");
   const [themeColor, setThemeColor] = useState(pastelColors[0].hex);
 
   const {
@@ -208,6 +314,12 @@ export default function EditProfile() {
               .map((s) => s.trim())
               .filter(Boolean)
           : [];
+        const parsedCharacteristics = data.characteristics
+          ? data.characteristics
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
         let parsedLinks = [];
         if (data.social_links) {
           try {
@@ -220,6 +332,7 @@ export default function EditProfile() {
           }
         }
         setNiches(parsedNiches);
+        setCharacteristics(parsedCharacteristics);
         setSocialLinks(parsedLinks);
         if (data.theme_color) setThemeColor(data.theme_color);
         reset({
@@ -246,6 +359,7 @@ export default function EditProfile() {
                   .filter(Boolean)
               : [];
             setNiches(parsedNiches);
+            setCharacteristics([]);
             reset({
               first_name: pd.first_name || "",
               last_name: pd.last_name || "",
@@ -308,6 +422,8 @@ export default function EditProfile() {
       onlyDigits(formData.whatsapp_number_local) || null;
 
     const nicheStr = niches.length > 0 ? niches.join(",") : null;
+    const characteristicsStr =
+      characteristics.length > 0 ? characteristics.join(",") : null;
     const socialLinksStr =
       socialLinks.length > 0 ? JSON.stringify(socialLinks) : null;
 
@@ -319,6 +435,7 @@ export default function EditProfile() {
         company_name: formData.company_name,
         delivery_option: formData.delivery_option?.join(",") || null,
         niche: nicheStr,
+        characteristics: characteristicsStr,
         social_links: socialLinksStr,
         whatsapp_number,
         whatsapp_region,
@@ -535,76 +652,25 @@ export default function EditProfile() {
             </p>
           )}
         </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            Nichos{" "}
-            <span className="text-gray-400 font-normal">(elegí uno o más)</span>
-          </label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {niches.map((n, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full"
-              >
-                {n}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setNiches((prev) => prev.filter((_, j) => j !== i))
-                  }
-                  className="hover:text-red-500 transition-colors"
-                >
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newNicheInput}
-              onChange={(e) => setNewNicheInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  const val = newNicheInput.trim();
-                  if (val && !niches.includes(val)) {
-                    setNiches((prev) => [...prev, val]);
-                  }
-                  setNewNicheInput("");
-                }
-              }}
-              placeholder="Escribí un nicho y presioná Enter"
-              maxLength={100}
-              className="flex-1 px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const val = newNicheInput.trim();
-                if (val && !niches.includes(val)) {
-                  setNiches((prev) => [...prev, val]);
-                }
-                setNewNicheInput("");
-              }}
-              className="px-4 py-3 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition-colors"
-            >
-              Agregar
-            </button>
-          </div>
-        </div>
+        <TagPicker
+          title="Nichos"
+          helper="Elegí rubros para que tus clientes entiendan qué vendés. También podés escribir uno propio."
+          options={SELLER_NICHES}
+          values={niches}
+          setValues={setNiches}
+          customValue={newNicheInput}
+          setCustomValue={setNewNicheInput}
+        />
+
+        <TagPicker
+          title="Características"
+          helper="Marcá cómo vendés o qué diferencia tu emprendimiento. Ej: venta mayorista, hecho a mano, local físico."
+          options={SELLER_FEATURES}
+          values={characteristics}
+          setValues={setCharacteristics}
+          customValue={newCharacteristicInput}
+          setCustomValue={setNewCharacteristicInput}
+        />
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-gray-700 mb-2">
             Tipo de entrega
