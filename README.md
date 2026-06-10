@@ -1,39 +1,58 @@
 # 🛍️ Tienda Upiti
 
-Plataforma e-commerce moderna desarrollada por Estudio Camaleón, enfocada en rendimiento, experiencia de usuario y escalabilidad.
+<p align="center">
+  <b>E-commerce moderno enfocado en experiencia de usuario, rendimiento y escalabilidad</b>
+</p>
 
-![demo](./public/demo.gif)
+<p align="center">
+  <img src="./public/demo.gif" height="350"/>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/status-active-brightgreen"/>
+  <img src="https://img.shields.io/badge/version-1.0-blue"/>
+  <img src="https://img.shields.io/badge/license-MIT-black"/>
+</p>
 
 ---
 
 ## ✨ Features
 
 * 🛒 Carrito de compras dinámico
-* 🔐 Sistema de autenticación de usuarios
+* 🔐 Autenticación de usuarios
 * 📦 Gestión de productos
 * 📱 Diseño responsive (mobile-first)
 * ⚡ Optimización de rendimiento
 
 ---
 
-## 🧠 Tecnologías utilizadas
+## 🧠 Tecnologías
 
-* Frontend: HTML, CSS, JavaScript / React (ajustar)
-* Backend: Node.js / API (ajustar)
-* Base de datos: (agregar si aplica)
+* HTML, CSS, JavaScript
+* React (si aplica)
+* Node.js (si aplica)
 
 ---
 
 ## 🚀 Demo
 
-👉 [https://tu-demo.vercel.app](https://tienda-upiti.vercel.app/)]
+<p align="center">
+  <a href="https://tu-demo.vercel.app">
+    👉 Ver aplicación en vivo
+  </a>
+</p>
 
 ---
 
-## 📸 Screenshots
+## 📸 Vista previa
 
-![home](./public/screenshot1.png)
-![login](./public/screenshot2.png)
+<p align="center">
+  <img src="./public/screenshot1.png" height="320"/>
+</p>
+
+<p align="center">
+  <img src="./public/screenshot2.png" height="320"/>
+</p>
 
 ---
 
@@ -60,13 +79,11 @@ npm run dev
 
 ---
 
-## 🤝 Contribuciones
-
-Las contribuciones son bienvenidas.
+## 🤝 Contribuir
 
 1. Fork del proyecto
-2. Crear una rama (`feature/nueva-feature`)
-3. Commit (`feat: agregar nueva feature`)
+2. Crear rama (`feature/nueva-feature`)
+3. Commit (`feat: nueva funcionalidad`)
 4. Push
 5. Pull Request
 
@@ -74,11 +91,11 @@ Las contribuciones son bienvenidas.
 
 ## 📄 Licencia
 
-Este proyecto está bajo la licencia MIT.
+MIT
 
 ---
 
 ## 👨‍💻 Autor
 
-Desarrollado por Estudio Camaleón
+Estudio Camaleón
 🌐 https://www.estudiocamaleontuc.com
