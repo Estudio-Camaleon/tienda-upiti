@@ -37,7 +37,7 @@
 ## 🚀 Demo
 
 <p align="center">
-  <a href="[https://tu-demo.vercel.app](https://tienda-upiti.vercel.app/)">
+  <a href="https://tienda-upiti.vercel.app/">
     👉 Ver aplicación en vivo
   </a>
 </p>
