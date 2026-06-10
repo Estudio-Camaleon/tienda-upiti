@@ -26,14 +26,14 @@ Plataforma e-commerce moderna desarrollada por Estudio Camaleón, enfocada en re
 
 ## 🚀 Demo
 
-👉 https://tu-demo.vercel.app
+👉 [https://tu-demo.vercel.app](https://tienda-upiti.vercel.app/)]
 
 ---
 
 ## 📸 Screenshots
 
 ![home](./public/screenshot1.png)
-![product](./public/screenshot2.png)
+![login](./public/screenshot2.png)
 
 ---
 
