@@ -10,6 +10,11 @@ import { CONFIG } from "../../../data/config";
 import { useStoreConfig } from "../../../context/StoreConfigContext";
 import { useToast } from "../../../context/ToastContext";
 import { reviewSchema } from "../../../lib/schemas";
+import {
+  toggleFollow,
+  isFollowing,
+  getFollowerCount,
+} from "../../../lib/interactions";
 
 function StarRating({ rating, size = "sm" }) {
   const sizeClass = size === "lg" ? "w-5 h-5" : "w-4 h-4";
@@ -110,6 +115,9 @@ export default function SellerProfile() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
 
   const {
     register,
@@ -194,6 +202,14 @@ export default function SellerProfile() {
         } else {
           setReviews(reviewsData.data || []);
         }
+
+        // Load follower count + following status
+        const count = await getFollowerCount(profileData.id);
+        setFollowerCount(count);
+        if (session?.user && session.user.id !== profileData.id) {
+          const isF = await isFollowing(session.user.id, profileData.id);
+          setFollowing(isF);
+        }
       } catch (err) {
         console.error("Error de conexion:", err);
       } finally {
@@ -269,6 +285,19 @@ export default function SellerProfile() {
   const handleRatingChange = (rating) => {
     setValue("rating", rating, { shouldDirty: true, shouldValidate: true });
   };
+
+  async function handleToggleFollow() {
+    if (!currentUser || followLoading) return;
+    setFollowLoading(true);
+    try {
+      const result = await toggleFollow(currentUser.id, seller.id);
+      setFollowing(result.following);
+      setFollowerCount((c) => c + (result.following ? 1 : -1));
+    } catch {
+      // ignore
+    }
+    setFollowLoading(false);
+  }
 
   if (loading) return <LoadingSkeleton />;
 
@@ -478,6 +507,28 @@ export default function SellerProfile() {
                   </span>
                   <span className="text-xs text-gray-400">reseñas</span>
                 </div>
+
+                <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg">
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                    />
+                  </svg>
+                  <span className="text-sm font-bold text-gray-700">
+                    {followerCount}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {followerCount === 1 ? "seguidor" : "seguidores"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -518,6 +569,42 @@ export default function SellerProfile() {
         </div>
 
         <div className="space-y-6">
+          {currentUser && currentUser.id !== seller.id && (
+            <button
+              onClick={handleToggleFollow}
+              disabled={followLoading}
+              className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-sm transition-all min-h-[44px] shadow-sm ${
+                following
+                  ? "bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50"
+                  : "text-white"
+              }`}
+              style={following ? {} : { backgroundColor: themeColor }}
+            >
+              <svg
+                className={`w-4 h-4 ${following ? "text-emerald-500" : ""}`}
+                fill={following ? "currentColor" : "none"}
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+              >
+                {following ? (
+                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                  />
+                )}
+              </svg>
+              {followLoading
+                ? "Cargando..."
+                : following
+                  ? "Siguiendo"
+                  : "Seguir vendedor"}
+            </button>
+          )}
+
           {seller.whatsapp_number && (
             <a
               href={`https://wa.me/${seller.whatsapp_number}`}

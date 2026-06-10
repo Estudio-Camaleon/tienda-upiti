@@ -5,12 +5,22 @@ import Hero from "../components/Hero";
 import ProductCard from "../components/ProductCard";
 import { supabase } from "../lib/supabase";
 
+const sortOptions = [
+  { value: "recent", label: "Más recientes" },
+  { value: "price-desc", label: "Precio: mayor a menor" },
+  { value: "price-asc", label: "Precio: menor a mayor" },
+  { value: "name-asc", label: "Nombre: A-Z" },
+  { value: "name-desc", label: "Nombre: Z-A" },
+];
+
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("categories");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("recent");
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     async function loadProducts() {
@@ -23,6 +33,13 @@ export default function Home() {
       setLoading(false);
     }
     loadProducts();
+  }, []);
+
+  // Fetch current user for favorites
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setCurrentUser(data.session?.user || null);
+    });
   }, []);
 
   // Build categories with thumbnails and product counts
@@ -46,14 +63,35 @@ export default function Home() {
     return Array.from(map.values());
   }, [products]);
 
-  const filteredProducts = products.filter((p) => {
-    const matchesCategory =
-      !selectedCategory || p.category === selectedCategory;
-    const matchesSearch =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Filter + sort products
+  const filteredProducts = useMemo(() => {
+    let result = products.filter((p) => {
+      const matchesCategory =
+        !selectedCategory || p.category === selectedCategory;
+      const matchesSearch =
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+
+    switch (sortBy) {
+      case "price-desc":
+        result.sort((a, b) => Number(b.price) - Number(a.price));
+        break;
+      case "price-asc":
+        result.sort((a, b) => Number(a.price) - Number(b.price));
+        break;
+      case "name-asc":
+        result.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case "name-desc":
+        result.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      default:
+        result.sort((a, b) => b.id - a.id);
+    }
+    return result;
+  }, [products, selectedCategory, searchQuery, sortBy]);
 
   function handleSelectCategory(categoryName) {
     setSelectedCategory(categoryName);
@@ -187,27 +225,40 @@ export default function Home() {
                     </p>
                   </div>
 
-                  <div className="relative w-full md:w-72">
-                    <input
-                      type="text"
-                      placeholder="Buscar en esta categoría..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-11 pr-4 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-sm transition-all"
-                    />
-                    <svg
-                      className="w-5 h-5 absolute left-4 top-3 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        placeholder="Buscar en esta categoría..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-11 pr-4 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-sm transition-all"
                       />
-                    </svg>
+                      <svg
+                        className="w-5 h-5 absolute left-4 top-3 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="px-4 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-sm text-sm bg-white transition-all cursor-pointer"
+                    >
+                      {sortOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {filteredProducts.length === 0 ? (
@@ -221,6 +272,7 @@ export default function Home() {
                           key={product.id}
                           product={product}
                           index={index}
+                          currentUser={currentUser}
                         />
                       ))}
                     </div>

@@ -12,6 +12,12 @@ import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmContext";
 import ProductEditModal from "../../components/ProductEditModal";
 import { CATEGORIES, getCategoryFields } from "../../data/categories";
+import {
+  getFavorites,
+  getFollowedSellers,
+  toggleFavorite,
+  toggleFollow,
+} from "../../lib/interactions";
 
 const statusStyles = {
   approved: "bg-emerald-100 text-emerald-700",
@@ -117,6 +123,7 @@ function SellerDashboard({ user }) {
   const confirm = useConfirm();
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [myWrittenReviews, setMyWrittenReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imageFiles, setImageFiles] = useState([null, null, null, null]);
   const [imagePreviews, setImagePreviews] = useState([null, null, null, null]);
@@ -126,6 +133,11 @@ function SellerDashboard({ user }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [reviewTab, setReviewTab] = useState("received");
+  const [favTab, setFavTab] = useState("favorites");
+  const [favorites, setFavorites] = useState([]);
+  const [followedSellers, setFollowedSellers] = useState([]);
+  const [favFollowLoading, setFavFollowLoading] = useState(false);
 
   const {
     register,
@@ -152,17 +164,48 @@ function SellerDashboard({ user }) {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [prodRes, revRes] = await Promise.all([
+      const [prodRes, revRes, writtenRes] = await Promise.all([
         supabase
           .from("products")
           .select("*")
           .eq("seller_id", user.id)
           .order("id", { ascending: false }),
-        supabase.from("reviews").select("rating").eq("seller_id", user.id),
+        supabase
+          .from("reviews")
+          .select(
+            `*, reviewer:profiles!reviewer_id(first_name, last_name, avatar_url)`,
+          )
+          .eq("seller_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("reviews")
+          .select(
+            `*, seller:profiles!seller_id(company_name, first_name, last_name, slug)`,
+          )
+          .eq("reviewer_id", user.id)
+          .order("created_at", { ascending: false }),
       ]);
       if (!mounted) return;
       setProducts(prodRes.data || []);
-      setReviews(revRes.data || []);
+      if (revRes.error) {
+        const { data: fallback } = await supabase
+          .from("reviews")
+          .select("*")
+          .eq("seller_id", user.id);
+        setReviews(fallback || []);
+      } else {
+        setReviews(revRes.data || []);
+      }
+      setMyWrittenReviews(writtenRes.data || []);
+
+      // Load favorites and followed sellers (non-blocking)
+      getFavorites(user.id).then((favData) => {
+        if (mounted) setFavorites(favData);
+      });
+      getFollowedSellers(user.id).then((followData) => {
+        if (mounted) setFollowedSellers(followData);
+      });
+
       setLoading(false);
     })();
     return () => {
@@ -248,6 +291,26 @@ function SellerDashboard({ user }) {
     }
     setProducts((prev) => prev.filter((p) => p.id !== productId));
     addToast("Producto eliminado.", "success");
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    const ok = await confirm({
+      title: "¿Eliminar reseña?",
+      message: "Esta acción no se puede deshacer.",
+      confirmText: "Eliminar",
+      variant: "danger",
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("reviews")
+      .delete()
+      .eq("id", reviewId);
+    if (error) {
+      addToast("Error al eliminar: " + error.message, "error");
+      return;
+    }
+    setMyWrittenReviews((prev) => prev.filter((r) => r.id !== reviewId));
+    addToast("Reseña eliminada.", "success");
   };
 
   // Extract onChange from register to wrap with specs reset
@@ -519,6 +582,336 @@ function SellerDashboard({ user }) {
           </button>
         </div>
       )}
+
+      {/* ───── Reseñas ───── */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+        <h3 className="text-lg font-black text-gray-900 mb-4">Reseñas</h3>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3">
+          <button
+            onClick={() => setReviewTab("received")}
+            className={`text-sm font-bold px-4 py-1.5 rounded-lg transition-colors ${
+              reviewTab === "received"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+            }`}
+          >
+            Recibidas{" "}
+            <span className="font-normal opacity-70">({reviews.length})</span>
+          </button>
+          <button
+            onClick={() => setReviewTab("written")}
+            className={`text-sm font-bold px-4 py-1.5 rounded-lg transition-colors ${
+              reviewTab === "written"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+            }`}
+          >
+            Escritas{" "}
+            <span className="font-normal opacity-70">
+              ({myWrittenReviews.length})
+            </span>
+          </button>
+        </div>
+
+        {/* Received reviews */}
+        {reviewTab === "received" && (
+          <div className="space-y-3">
+            {reviews.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-6">
+                Todavía no recibiste reseñas.
+              </p>
+            ) : (
+              reviews.map((rev) => (
+                <div
+                  key={rev.id}
+                  className="bg-gray-50 p-4 rounded-2xl flex items-start gap-3"
+                >
+                  <img
+                    src={rev.reviewer?.avatar_url || "https://placehold.co/40"}
+                    alt=""
+                    className="w-9 h-9 rounded-full object-cover shrink-0 mt-0.5"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-sm text-gray-900">
+                        {rev.reviewer?.first_name || "Usuario"}{" "}
+                        {rev.reviewer?.last_name || ""}
+                      </span>
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(rev.created_at).toLocaleDateString("es-AR")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-0.5 mb-1.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg
+                          key={star}
+                          className={`w-3.5 h-3.5 ${
+                            star <= rev.rating
+                              ? "text-amber-400"
+                              : "text-gray-200"
+                          }`}
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-sm text-gray-600 break-words">
+                      {rev.comment}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Written reviews */}
+        {reviewTab === "written" && (
+          <div className="space-y-3">
+            {myWrittenReviews.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-6">
+                No escribiste reseñas todavía.
+              </p>
+            ) : (
+              myWrittenReviews.map((rev) => (
+                <div
+                  key={rev.id}
+                  className="bg-gray-50 p-4 rounded-2xl flex items-start gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-sm text-gray-900">
+                        {rev.seller?.company_name ||
+                          rev.seller?.first_name ||
+                          "Vendedor"}
+                      </span>
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(rev.created_at).toLocaleDateString("es-AR")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-0.5 mb-1.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg
+                          key={star}
+                          className={`w-3.5 h-3.5 ${
+                            star <= rev.rating
+                              ? "text-amber-400"
+                              : "text-gray-200"
+                          }`}
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-sm text-gray-600 break-words">
+                      {rev.comment}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteReview(rev.id)}
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    title="Eliminar reseña"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ───── Favoritos y Seguidos ───── */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+        <h3 className="text-lg font-black text-gray-900 mb-4">
+          Favoritos y Seguidos
+        </h3>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3">
+          <button
+            onClick={() => setFavTab("favorites")}
+            className={`text-sm font-bold px-4 py-1.5 rounded-lg transition-colors ${
+              favTab === "favorites"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+            }`}
+          >
+            Favoritos{" "}
+            <span className="font-normal opacity-70">({favorites.length})</span>
+          </button>
+          <button
+            onClick={() => setFavTab("followed")}
+            className={`text-sm font-bold px-4 py-1.5 rounded-lg transition-colors ${
+              favTab === "followed"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+            }`}
+          >
+            Seguidos{" "}
+            <span className="font-normal opacity-70">
+              ({followedSellers.length})
+            </span>
+          </button>
+        </div>
+
+        {/* Favorites tab */}
+        {favTab === "favorites" && (
+          <div className="space-y-3">
+            {favorites.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-6">
+                No tenés productos favoritos todavía.
+              </p>
+            ) : (
+              favorites.map((fav) => (
+                <div
+                  key={fav.id}
+                  className="bg-gray-50 p-4 rounded-2xl flex items-center gap-3"
+                >
+                  <Link
+                    href={`/producto/${fav.product?.slug || fav.product_id}`}
+                    className="shrink-0"
+                  >
+                    <img
+                      src={
+                        fav.product?.image ||
+                        "https://placehold.co/60/eeeeee/999999?text=No+Img"
+                      }
+                      alt={fav.product?.name || ""}
+                      className="w-14 h-14 rounded-xl object-cover"
+                    />
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link
+                      href={`/producto/${fav.product?.slug || fav.product_id}`}
+                      className="text-sm font-bold text-gray-900 hover:text-emerald-600 truncate block"
+                    >
+                      {fav.product?.name || "Producto"}
+                    </Link>
+                    <p className="text-xs text-gray-400">
+                      {fav.product?.category || ""}
+                    </p>
+                    <p className="text-sm font-black text-gray-800 mt-0.5">
+                      {CONFIG.currency}
+                      {Number(fav.product?.price || 0).toLocaleString("es-AR")}
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (favFollowLoading) return;
+                      setFavFollowLoading(true);
+                      try {
+                        await toggleFavorite(user.id, fav.product_id);
+                        setFavorites((prev) =>
+                          prev.filter((f) => f.id !== fav.id),
+                        );
+                      } catch {
+                        // ignore
+                      }
+                      setFavFollowLoading(false);
+                    }}
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    title="Quitar de favoritos"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Followed sellers tab */}
+        {favTab === "followed" && (
+          <div className="space-y-3">
+            {followedSellers.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-6">
+                No seguís a ningún vendedor todavía.
+              </p>
+            ) : (
+              followedSellers.map((fol) => (
+                <div
+                  key={fol.id}
+                  className="bg-gray-50 p-4 rounded-2xl flex items-center gap-3"
+                >
+                  <Link
+                    href={`/vendedor/${fol.followed?.slug || fol.followed_id}`}
+                    className="shrink-0"
+                  >
+                    <img
+                      src={
+                        fol.followed?.avatar_url || "https://placehold.co/48"
+                      }
+                      alt={fol.followed?.company_name || ""}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link
+                      href={`/vendedor/${fol.followed?.slug || fol.followed_id}`}
+                      className="text-sm font-bold text-gray-900 hover:text-emerald-600 truncate block"
+                    >
+                      {fol.followed?.company_name ||
+                        [fol.followed?.first_name, fol.followed?.last_name]
+                          .filter(Boolean)
+                          .join(" ") ||
+                        "Vendedor"}
+                    </Link>
+                    {fol.followed?.niche && (
+                      <p className="text-xs text-gray-400 truncate">
+                        {fol.followed.niche}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (favFollowLoading) return;
+                      setFavFollowLoading(true);
+                      try {
+                        await toggleFollow(user.id, fol.followed_id);
+                        setFollowedSellers((prev) =>
+                          prev.filter((f) => f.id !== fol.id),
+                        );
+                      } catch {
+                        // ignore
+                      }
+                      setFavFollowLoading(false);
+                    }}
+                    className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
+                    title="Dejar de seguir"
+                  >
+                    Dejar de seguir
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
 
       <AnimatePresence>
         {showForm && (

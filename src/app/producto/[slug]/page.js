@@ -9,6 +9,7 @@ import { useStoreConfig } from "../../../context/StoreConfigContext";
 import { concatParts } from "../../../lib/phone";
 import ProductCard from "../../../components/ProductCard";
 import ShareButtons from "../../../components/ShareButtons";
+import { toggleFavorite, isFavorited } from "../../../lib/interactions";
 
 function openWhatsApp(phone, product) {
   const message = encodeURIComponent(
@@ -128,6 +129,21 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [favorited, setFavorited] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setCurrentUser(data.session?.user || null);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (currentUser && product) {
+      isFavorited(currentUser.id, product.id).then(setFavorited);
+    }
+  }, [currentUser, product]);
 
   async function findProduct(param) {
     // Primero buscar por slug
@@ -183,6 +199,18 @@ export default function ProductDetail() {
     }
     fetchProduct();
   }, [slug]);
+
+  async function handleToggleFav() {
+    if (!currentUser || favLoading) return;
+    setFavLoading(true);
+    try {
+      const result = await toggleFavorite(currentUser.id, product.id);
+      setFavorited(result.favorited);
+    } catch {
+      // ignore
+    }
+    setFavLoading(false);
+  }
 
   // Update meta tags dynamically on the client once product is loaded
   useEffect(() => {
@@ -358,6 +386,32 @@ export default function ProductDetail() {
                     }
                     title={`${product.name} - ${CONFIG.storeName}`}
                   />
+                  {/* Heart favorite button */}
+                  {currentUser && (
+                    <button
+                      onClick={handleToggleFav}
+                      disabled={favLoading}
+                      className="absolute top-3 left-3 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
+                    >
+                      <svg
+                        className={`w-5 h-5 transition-colors ${
+                          favorited
+                            ? "text-red-500 fill-red-500"
+                            : "text-gray-400 fill-transparent"
+                        }`}
+                        fill="currentColor"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -375,6 +429,31 @@ export default function ProductDetail() {
                   }
                   title={`${product.name} - ${CONFIG.storeName}`}
                 />
+                {currentUser && (
+                  <button
+                    onClick={handleToggleFav}
+                    disabled={favLoading}
+                    className="absolute top-3 left-3 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
+                  >
+                    <svg
+                      className={`w-5 h-5 transition-colors ${
+                        favorited
+                          ? "text-red-500 fill-red-500"
+                          : "text-gray-400 fill-transparent"
+                      }`}
+                      fill="currentColor"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                  </button>
+                )}
               </div>
             )}
 

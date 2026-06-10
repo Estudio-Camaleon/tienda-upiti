@@ -505,7 +505,7 @@ export default function EditProfile() {
               {...register("whatsapp_region")}
               className={`w-full px-4 py-3 rounded-xl border outline-none text-sm bg-white transition-shadow focus:ring-2 col-span-1 ${errors.whatsapp_region ? "border-red-400 focus:ring-red-500/20" : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"}`}
             >
-              <option value="">+54</option>
+              <option value="">País</option>
               {countries.map((c) => (
                 <option key={c.code} value={c.code}>
                   +{c.code} — {c.name}
