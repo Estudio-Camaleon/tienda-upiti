@@ -12,6 +12,7 @@ import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmContext";
 import ProductEditModal from "../../components/ProductEditModal";
 import { CATEGORIES, getCategoryFields } from "../../data/categories";
+import { CONFIG } from "../../data/config";
 import {
   getFavorites,
   getFollowedSellers,
