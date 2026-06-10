@@ -1,36 +1,18 @@
-# 🛍️ Tienda Upiti
+<p align="center">
+  <img src="./public/banner-dark.png"/>
+</p>
+
+<h1 align="center">🛍️ Tienda Upiti</h1>
 
 <p align="center">
-  <b>E-commerce moderno enfocado en experiencia de usuario, rendimiento y escalabilidad</b>
+  Plataforma e-commerce moderna con enfoque en rendimiento, UX y diseño visual
 </p>
 
 <p align="center">
-  <img src="./public/demo.gif" height="350"/>
+  <img src="https://img.shields.io/badge/status-active-0ea5e9"/>
+  <img src="https://img.shields.io/badge/version-1.0-8b5cf6"/>
+  <img src="https://img.shields.io/badge/style-dark--ui-111827"/>
 </p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/status-active-brightgreen"/>
-  <img src="https://img.shields.io/badge/version-1.0-blue"/>
-  <img src="https://img.shields.io/badge/license-MIT-black"/>
-</p>
-
----
-
-## ✨ Features
-
-* 🛒 Carrito de compras dinámico
-* 🔐 Autenticación de usuarios
-* 📦 Gestión de productos
-* 📱 Diseño responsive (mobile-first)
-* ⚡ Optimización de rendimiento
-
----
-
-## 🧠 Tecnologías
-
-* HTML, CSS, JavaScript
-* React (si aplica)
-* Node.js (si aplica)
 
 ---
 
@@ -44,15 +26,33 @@
 
 ---
 
+## ✨ Features
+
+* 🛒 Carrito de compras dinámico
+* 🔐 Sistema de autenticación
+* 📦 Gestión de productos
+* 📱 Diseño responsive
+* ⚡ Alto rendimiento
+
+---
+
 ## 📸 Vista previa
 
 <p align="center">
-  <img src="./public/screenshot1.png" height="320"/>
+  <img src="./public/screenshot1.png" height="300"/>
 </p>
 
 <p align="center">
-  <img src="./public/screenshot2.png" height="320"/>
+  <img src="./public/screenshot2.png" height="300"/>
 </p>
+
+---
+
+## 🧠 Tecnologías
+
+* React / Next.js
+* Node.js
+* CSS moderno (Tailwind o similar)
 
 ---
 
@@ -67,35 +67,18 @@ npm run dev
 
 ---
 
-## 📂 Estructura del proyecto
+## 📂 Estructura
 
 ```
 /src
   /components
   /pages
-  /utils
+  /services
 /public
 ```
 
 ---
 
-## 🤝 Contribuir
+## 👨‍💻 Estudio Camaleón
 
-1. Fork del proyecto
-2. Crear rama (`feature/nueva-feature`)
-3. Commit (`feat: nueva funcionalidad`)
-4. Push
-5. Pull Request
-
----
-
-## 📄 Licencia
-
-MIT
-
----
-
-## 👨‍💻 Autor
-
-Estudio Camaleón
-🌐 https://www.estudiocamaleontuc.com
+Proyecto enfocado en crear experiencias de compra modernas, rápidas y visualmente atractivas.
