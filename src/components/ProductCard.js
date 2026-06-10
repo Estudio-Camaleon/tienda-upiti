@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CONFIG } from "../data/config";
+import ShareButtons from "./ShareButtons";
 
 function openWhatsApp(phone, product) {
   const message = encodeURIComponent(
@@ -32,6 +33,14 @@ export default function ProductCard({ product, index }) {
           }
           alt={product.name}
         />
+        <ShareButtons
+          url={
+            typeof window !== "undefined"
+              ? `${window.location.origin}/producto/${product.slug || product.id}`
+              : ""
+          }
+          title={`${product.name} - ${CONFIG.storeName}`}
+        />
       </Link>
 
       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
@@ -40,14 +49,6 @@ export default function ProductCard({ product, index }) {
             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-500">
               {product.category}
             </span>
-            {product.seller_id && (
-              <Link
-                href={`/vendedor/${product.profiles?.slug || product.seller_id}`}
-                className="text-[11px] sm:text-[10px] font-bold text-gray-400 hover:text-emerald-600 underline py-1 sm:py-0"
-              >
-                Ver Tienda 🏪
-              </Link>
-            )}
           </div>
 
           <Link

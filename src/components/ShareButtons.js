@@ -6,7 +6,9 @@ export default function ShareButtons({ url, title }) {
 
   const canShare = typeof navigator.share === "function";
 
-  const handleShare = async () => {
+  const handleShare = async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
     if (canShare) {
       try {
         await navigator.share({ title, url });

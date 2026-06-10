@@ -3,32 +3,15 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { productSchema } from "../../lib/schemas";
 import { slugify, generateUniqueSlug } from "../../lib/slug";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmContext";
-
-const categories = [
-  "Ropa",
-  "Accesorios",
-  "Calzado",
-  "Bolsos y Carteras",
-  "Deco y Hogar",
-  "Arte",
-  "Juguetes",
-  "Libros",
-  "Música",
-  "Electrónica",
-  "Salud y Belleza",
-  "Deportes",
-  "Alimentos y Bebidas",
-  "Mascotas",
-  "Servicios",
-  "Otros",
-];
+import ProductEditModal from "../../components/ProductEditModal";
+import { CATEGORIES, getCategoryFields } from "../../data/categories";
 
 const statusStyles = {
   approved: "bg-emerald-100 text-emerald-700",
@@ -135,19 +118,27 @@ function SellerDashboard({ user }) {
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [productImage, setProductImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFiles, setImageFiles] = useState([null, null, null, null]);
+  const [imagePreviews, setImagePreviews] = useState([null, null, null, null]);
   const [uploading, setUploading] = useState(false);
+  const [specs, setSpecs] = useState({});
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm({ resolver: zodResolver(productSchema) });
+
+  const selectedCategory = useWatch({ control, name: "category" });
+  const categoryFields = selectedCategory
+    ? getCategoryFields(selectedCategory)
+    : [];
 
   const loadProducts = async () => {
     const { data } = await supabase
@@ -184,21 +175,23 @@ function SellerDashboard({ user }) {
     setUploading(true);
     let imageUrl = null;
 
-    if (productImage) {
-      const fileExt = productImage.name.split(".").pop();
+    const uploadedUrls = [];
+    for (const file of imageFiles) {
+      if (!file) continue;
+      const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/products/${crypto.randomUUID()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from("products")
-        .upload(fileName, productImage);
+        .upload(fileName, file);
       if (uploadError) {
-        addToast("Error al subir la imagen: " + uploadError.message, "error");
+        addToast("Error al subir imagen: " + uploadError.message, "error");
         setUploading(false);
         return;
       }
       const { data: urlData } = supabase.storage
         .from("products")
         .getPublicUrl(fileName);
-      imageUrl = urlData.publicUrl;
+      uploadedUrls.push(urlData.publicUrl);
     }
 
     const productSlug = slugify(data.name) || "producto";
@@ -211,10 +204,12 @@ function SellerDashboard({ user }) {
         category: data.category,
         price: Number(data.price),
         description: data.description || null,
-        image: imageUrl,
+        image: uploadedUrls[0] || null,
+        images: uploadedUrls,
         seller_id: user.id,
         status: "pending",
         slug,
+        specifications: specs,
       },
     ]);
 
@@ -229,8 +224,8 @@ function SellerDashboard({ user }) {
       "success",
     );
     reset();
-    setProductImage(null);
-    setImagePreview(null);
+    setImageFiles([null, null, null, null]);
+    setImagePreviews([null, null, null, null]);
     setUploading(false);
     loadProducts();
   };
@@ -254,6 +249,9 @@ function SellerDashboard({ user }) {
     setProducts((prev) => prev.filter((p) => p.id !== productId));
     addToast("Producto eliminado.", "success");
   };
+
+  // Extract onChange from register to wrap with specs reset
+  const { onChange: catOnChange, ...catRest } = register("category");
 
   const searchLower = search.toLowerCase();
   const filtered = useMemo(
@@ -448,12 +446,20 @@ function SellerDashboard({ user }) {
                       )}
                       <div className="pt-1.5 flex items-center gap-3">
                         {p.status === "approved" && (
-                          <Link
-                            href={`/producto/${p.slug || p.id}`}
-                            className="text-xs font-bold text-emerald-600 hover:text-emerald-700"
-                          >
-                            Ver en tienda
-                          </Link>
+                          <>
+                            <Link
+                              href={`/producto/${p.slug || p.id}`}
+                              className="text-xs font-bold text-emerald-600 hover:text-emerald-700"
+                            >
+                              Ver en tienda
+                            </Link>
+                            <button
+                              onClick={() => setEditingProduct(p)}
+                              className="text-xs font-bold text-gray-500 hover:text-emerald-700"
+                            >
+                              Editar
+                            </button>
+                          </>
                         )}
                         <button
                           onClick={() => handleDeleteProduct(p.id)}
@@ -587,7 +593,11 @@ function SellerDashboard({ user }) {
                   </label>
                   <select
                     id="category"
-                    {...register("category")}
+                    onChange={(e) => {
+                      catOnChange(e);
+                      setSpecs({});
+                    }}
+                    {...catRest}
                     className={`w-full px-4 py-3 rounded-xl border outline-none text-sm bg-white transition-shadow focus:ring-2 ${
                       errors.category
                         ? "border-red-400 focus:ring-red-500/20"
@@ -595,7 +605,7 @@ function SellerDashboard({ user }) {
                     }`}
                   >
                     <option value="">Seleccioná una categoría</option>
-                    {categories.map((c) => (
+                    {CATEGORIES.map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>
@@ -658,33 +668,191 @@ function SellerDashboard({ user }) {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1.5">
-                    Imagen del producto
-                  </label>
-                  <div className="flex items-center gap-4">
-                    {imagePreview && (
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-16 h-16 rounded-xl object-cover border border-gray-200 shrink-0"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          setProductImage(file || null);
-                          if (file) setImagePreview(URL.createObjectURL(file));
-                        }}
-                        className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-                      />
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        PNG o JPG. Máximo 5 MB.
-                      </p>
+                {categoryFields.length > 0 && (
+                  <div className="border-t border-gray-100 pt-4">
+                    <h4 className="text-sm font-bold text-gray-700 mb-3">
+                      Especificaciones de {selectedCategory}
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {categoryFields.map((field) => (
+                        <div key={field.name}>
+                          <label className="block text-xs font-bold text-gray-600 mb-1">
+                            {field.label}
+                          </label>
+                          {field.type === "select" ? (
+                            <select
+                              value={specs[field.name] || ""}
+                              onChange={(e) =>
+                                setSpecs((prev) => ({
+                                  ...prev,
+                                  [field.name]: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm bg-white"
+                            >
+                              <option value="">Seleccionar...</option>
+                              {field.options.map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={specs[field.name] || ""}
+                              onChange={(e) =>
+                                setSpecs((prev) => ({
+                                  ...prev,
+                                  [field.name]: e.target.value,
+                                }))
+                              }
+                              placeholder={field.placeholder || ""}
+                              maxLength={100}
+                              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 text-sm"
+                            />
+                          )}
+                        </div>
+                      ))}
                     </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-3">
+                    Imágenes del producto
+                  </label>
+                  <p className="text-xs text-gray-400 mb-3">
+                    Subí hasta 3 fotos y opcionalmente un GIF. Primera foto =
+                    principal.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      {
+                        index: 0,
+                        label: "Foto 1",
+                        required: true,
+                        hint: "Principal",
+                      },
+                      {
+                        index: 1,
+                        label: "Foto 2",
+                        required: false,
+                        hint: "Opcional",
+                      },
+                      {
+                        index: 2,
+                        label: "Foto 3",
+                        required: false,
+                        hint: "Opcional",
+                      },
+                      {
+                        index: 3,
+                        label: "GIF",
+                        required: false,
+                        hint: "Opcional",
+                      },
+                    ].map((slot) => (
+                      <div
+                        key={slot.index}
+                        className={`relative border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 min-h-[130px] transition-colors cursor-pointer hover:bg-gray-50 ${
+                          imagePreviews[slot.index]
+                            ? "border-emerald-300 bg-emerald-50/30"
+                            : "border-gray-200"
+                        }`}
+                        onClick={() => {
+                          document
+                            .getElementById(`img-upload-${slot.index}`)
+                            .click();
+                        }}
+                      >
+                        {imagePreviews[slot.index] ? (
+                          <img
+                            src={imagePreviews[slot.index]}
+                            alt=""
+                            className="w-full h-full absolute inset-0 object-cover rounded-xl"
+                          />
+                        ) : (
+                          <svg
+                            className="w-8 h-8 text-gray-300"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                        )}
+                        <span
+                          className={`text-xs font-bold z-10 ${
+                            imagePreviews[slot.index]
+                              ? "text-white bg-black/50 px-2 py-0.5 rounded-full"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {slot.label}
+                          {slot.required && (
+                            <span className="text-red-400 ml-0.5">*</span>
+                          )}
+                        </span>
+                        {!imagePreviews[slot.index] && (
+                          <span className="text-[10px] text-gray-400">
+                            {slot.hint}
+                          </span>
+                        )}
+                        <input
+                          id={`img-upload-${slot.index}`}
+                          type="file"
+                          accept={
+                            slot.index === 3 ? ".gif,image/gif" : "image/*"
+                          }
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const newFiles = [...imageFiles];
+                            const newPreviews = [...imagePreviews];
+                            newFiles[slot.index] = file;
+                            newPreviews[slot.index] = URL.createObjectURL(file);
+                            setImageFiles(newFiles);
+                            setImagePreviews(newPreviews);
+                          }}
+                        />
+                        {imagePreviews[slot.index] && (
+                          <button
+                            type="button"
+                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center z-10 hover:bg-red-600 transition-colors shadow-md"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newFiles = [...imageFiles];
+                              const newPreviews = [...imagePreviews];
+                              newFiles[slot.index] = null;
+                              newPreviews[slot.index] = null;
+                              setImageFiles(newFiles);
+                              setImagePreviews(newPreviews);
+                            }}
+                          >
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={3}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -722,6 +890,13 @@ function SellerDashboard({ user }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ProductEditModal
+        product={editingProduct}
+        isOpen={!!editingProduct}
+        onClose={() => setEditingProduct(null)}
+        onSaved={loadProducts}
+      />
     </div>
   );
 }
@@ -736,6 +911,7 @@ function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState("pending");
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [editingProduct, setEditingProduct] = useState(null);
 
   const fetchAll = useCallback(async () => {
     const [usersRes, productsRes, reviewsRes] = await Promise.all([
@@ -1104,6 +1280,12 @@ function AdminDashboard() {
                   </Link>
                 )}
                 <button
+                  onClick={() => setEditingProduct(p)}
+                  className="text-xs font-bold text-gray-500 hover:text-emerald-700"
+                >
+                  Editar
+                </button>
+                <button
                   onClick={async () => {
                     const ok = await confirm({
                       title: "¿Eliminar producto definitivamente?",
@@ -1131,6 +1313,13 @@ function AdminDashboard() {
           ))}
         </div>
       </section>
+
+      <ProductEditModal
+        product={editingProduct}
+        isOpen={!!editingProduct}
+        onClose={() => setEditingProduct(null)}
+        onSaved={reload}
+      />
     </motion.div>
   );
 }
