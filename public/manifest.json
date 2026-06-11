@@ -1,0 +1,27 @@
+{
+  "name": "Upiti - Tu tienda online",
+  "short_name": "Upiti",
+  "description": "Compra fácil y rápido, enviando tu pedido directamente por WhatsApp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ed355d",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/media/logo/icono_upiti.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/media/logo/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["shopping", "lifestyle"],
+  "lang": "es",
+  "dir": "ltr"
+}

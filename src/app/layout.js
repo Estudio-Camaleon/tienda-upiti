@@ -7,6 +7,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ThemeColor from "../components/ThemeColor";
 import GlobalImageProtection from "../components/GlobalImageProtection";
+import PwaInstallPrompt from "../components/PwaInstallPrompt";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -61,11 +62,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <body className="bg-gray-50 text-gray-900 font-sans antialiased selection:bg-emerald-500 selection:text-white min-h-screen flex flex-col">
+        <link rel="manifest" href="/manifest.json" />
         <StoreConfigProvider>
           <ConfirmProvider>
             <ToastProvider>
               <ThemeColor />
               <GlobalImageProtection />
+              <PwaInstallPrompt />
               <Header />
               <main className="flex-1">{children}</main>
               <Footer />
