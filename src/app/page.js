@@ -143,7 +143,7 @@ export default function Home() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+                  <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
                     {categories.map((cat, idx) => (
                       <motion.button
                         key={cat.name}
@@ -151,7 +151,7 @@ export default function Home() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.4, delay: idx * 0.05 }}
-                        className="relative group rounded-[2rem] overflow-hidden bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left cursor-pointer border border-gray-100"
+                        className="relative group rounded-[2rem] overflow-hidden bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left cursor-pointer border border-gray-100 w-full sm:w-[280px] md:w-[300px] xl:w-[320px] shrink-0"
                       >
                         <div className="relative pt-[80%] bg-gray-100 overflow-hidden">
                           <ProtectedImage
@@ -298,14 +298,18 @@ export default function Home() {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                    <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
                       {filteredProducts.map((product, index) => (
-                        <ProductCard
+                        <div
                           key={product.id}
-                          product={product}
-                          index={index}
-                          currentUser={currentUser}
-                        />
+                          className="w-full sm:w-[280px] md:w-[300px] xl:w-[320px] shrink-0"
+                        >
+                          <ProductCard
+                            product={product}
+                            index={index}
+                            currentUser={currentUser}
+                          />
+                        </div>
                       ))}
                     </div>
                   )}
