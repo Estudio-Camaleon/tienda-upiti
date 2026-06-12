@@ -25,7 +25,6 @@ export default function Hero({ products, loading }) {
     {
       loop: true,
       align: "start",
-      dragFree: false,
       containScroll: "trimSnaps",
       breakpoints: {
         "(min-width: 640px)": { slidesToScroll: 2 },
@@ -42,6 +41,7 @@ export default function Hero({ products, loading }) {
   );
 
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrollSnaps, setScrollSnaps] = useState([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -62,12 +62,24 @@ export default function Hero({ products, loading }) {
     setSelectedIndex(emblaApi.selectedScrollSnap());
   }, [emblaApi]);
 
-  const snapCount = products.length;
+  const initScrollSnaps = useCallback(() => {
+    if (!emblaApi) return;
+    setScrollSnaps(emblaApi.scrollSnapList());
+  }, [emblaApi]);
 
   useEffect(() => {
     if (!emblaApi) return;
+
+    const timer = setTimeout(() => {
+      initScrollSnaps();
+    }, 0);
+
     emblaApi.on("select", onSelect);
-  }, [emblaApi, onSelect]);
+    emblaApi.on("reInit", onSelect);
+    emblaApi.on("reInit", initScrollSnaps);
+
+    return () => clearTimeout(timer);
+  }, [emblaApi, onSelect, initScrollSnaps]);
 
   if (loading) return null;
 
@@ -78,7 +90,7 @@ export default function Hero({ products, loading }) {
     <motion.section
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
       className="relative overflow-hidden"
       style={{ "--theme-color": themeColor }}
     >
@@ -96,17 +108,17 @@ export default function Hero({ products, loading }) {
       </div>
 
       <div
-        className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none -z-10"
+        className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none -z-10 transition-colors duration-700"
         style={{ backgroundColor: `${themeColor}15` }}
       />
       <div
-        className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full blur-3xl pointer-events-none -z-10"
+        className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full blur-3xl pointer-events-none -z-10 transition-colors duration-700"
         style={{ backgroundColor: `${themeColor}10` }}
       />
 
       <div className="relative px-6 sm:px-10 py-8 sm:py-12 lg:py-16 max-w-7xl mx-auto">
-        <div className="text-center mb-6 sm:mb-8">
-          <div className="flex items-center justify-center">
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="flex items-center justify-center mb-4">
             <ProtectedImage
               src={logoUrl}
               alt={storeName}
@@ -119,30 +131,37 @@ export default function Hero({ products, loading }) {
             />
           </div>
           <strong>
-            <p>Descubrí productos únicos de emprendedores locales.</p>
-            <p>Comprá directo por WhatsApp, sin intermediarios.</p>
+            <p className="text-gray-800">
+              Descubrí productos únicos de emprendedores locales.
+            </p>
+            <p className="text-gray-800">
+              Comprá directo por WhatsApp, sin intermediarios.
+            </p>
           </strong>
         </div>
 
         {showCarousel ? (
           <>
-            <div ref={emblaRef}>
-              <div className="flex gap-4 cursor-grab active:cursor-grabbing">
+            <div
+              className="overflow-hidden w-full cursor-grab active:cursor-grabbing"
+              ref={emblaRef}
+            >
+              <div className="flex -ml-4 sm:-ml-6 touch-pan-y">
                 {products.map((product) => {
                   const whatsapp = product.profiles?.whatsapp_number;
                   return (
                     <div
                       key={product.id}
-                      className="relative shrink-0 w-[75%] sm:w-[48%] lg:w-[32%] min-w-0"
+                      className="flex-[0_0_85%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] min-w-0 pl-4 sm:pl-6 relative"
                     >
-                      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/80 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group h-full">
+                      <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-white/80 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group h-full flex flex-col">
                         <Link
                           href={`/producto/${product.slug || product.id}`}
-                          className="relative pt-[60%] bg-gray-100 overflow-hidden block"
+                          className="relative pt-[65%] bg-gray-100 overflow-hidden block shrink-0"
                         >
                           <ProtectedImage
                             className="absolute inset-0 w-full h-full"
-                            imgClassName="object-cover group-hover:scale-105 transition-transform duration-500"
+                            imgClassName="object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
                             src={
                               product.image ||
                               "https://placehold.co/400x260/eeeeee/999999?text=Sin+Imagen"
@@ -151,20 +170,20 @@ export default function Hero({ products, loading }) {
                           />
                           <div className="absolute top-3 left-3 flex gap-2">
                             <span
-                              className="text-[10px] font-bold uppercase tracking-wider bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-sm"
+                              className="text-[10px] font-bold uppercase tracking-wider bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg shadow-sm"
                               style={{ color: themeColor }}
                             >
                               {product.category}
                             </span>
                           </div>
                         </Link>
-                        <div className="p-4 sm:p-5 flex flex-col gap-2">
+
+                        <div className="p-5 flex flex-col flex-grow gap-3">
                           <Link
                             href={`/producto/${product.slug || product.id}`}
                           >
                             <h3
-                              className="font-bold text-gray-900 text-sm sm:text-base leading-tight line-clamp-1 transition-colors"
-                              style={{ "--hover-color": themeColor }}
+                              className="font-bold text-gray-900 text-base sm:text-lg leading-tight line-clamp-1 transition-colors duration-300"
                               onMouseEnter={(e) =>
                                 (e.currentTarget.style.color = themeColor)
                               }
@@ -175,44 +194,45 @@ export default function Hero({ products, loading }) {
                               {product.name}
                             </h3>
                           </Link>
-                          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
+
+                          <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed flex-grow">
                             {product.description}
                           </p>
+
                           {product.profiles?.company_name && (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2 mt-1">
                               <div
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black text-white shrink-0"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0 shadow-sm"
                                 style={{ backgroundColor: themeColor }}
                               >
                                 {product.profiles.company_name.charAt(0)}
                               </div>
-                              <p className="text-[11px] text-gray-500 truncate">
+                              <p className="text-xs font-medium text-gray-500 truncate">
                                 {product.profiles.company_name}
                               </p>
                             </div>
                           )}
-                          <div className="flex items-center justify-between pt-2 mt-1 border-t border-gray-100">
-                            <span className="text-base sm:text-lg font-black text-gray-900">
+
+                          <div className="flex items-center justify-between pt-4 mt-2 border-t border-gray-100">
+                            <span className="text-lg sm:text-xl font-black text-gray-900">
                               {CONFIG.currency}
                               {Number(product.price).toLocaleString("es-AR")}
                             </span>
                             <button
                               onClick={() => openWhatsApp(whatsapp, product)}
                               disabled={!whatsapp}
-                              className="text-white font-bold text-xs sm:text-[11px] py-2.5 sm:py-2 px-4 sm:px-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-1 shadow-sm min-h-[44px] sm:min-h-0"
-                              style={{
-                                backgroundColor: themeColor,
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.filter =
-                                  "brightness(1.1)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.filter = "";
-                              }}
+                              className="text-white font-bold text-xs py-2 px-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm hover:shadow-md"
+                              style={{ backgroundColor: themeColor }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.filter =
+                                  "brightness(1.1)")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.filter = "")
+                              }
                             >
                               <svg
-                                className="w-4 h-4 sm:w-3.5 sm:h-3.5"
+                                className="w-4 h-4"
                                 fill="currentColor"
                                 viewBox="0 0 24 24"
                               >
@@ -229,49 +249,47 @@ export default function Hero({ products, loading }) {
               </div>
             </div>
 
-            {snapCount > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-5">
-                {Array.from({ length: snapCount }, (_, index) => (
+            {scrollSnaps.length > 1 && (
+              <div className="flex justify-center items-center gap-2.5 mt-8">
+                {scrollSnaps.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => emblaApi?.scrollTo(index)}
-                    className={`rounded-full transition-all duration-300 h-3 sm:h-2 ${
+                    className={`rounded-full transition-all duration-300 h-2.5 ${
                       index === selectedIndex
-                        ? "w-8 sm:w-6"
-                        : "w-3 sm:w-2 bg-gray-200 hover:bg-gray-300"
+                        ? "w-8 bg-opacity-100 shadow-md"
+                        : "w-2.5 bg-gray-300 hover:bg-gray-400"
                     }`}
                     style={
                       index === selectedIndex
                         ? { backgroundColor: themeColor }
                         : undefined
                     }
-                    aria-label={`Ir al producto ${index + 1}`}
+                    aria-label={`Ir al grupo de productos ${index + 1}`}
                   />
                 ))}
               </div>
             )}
           </>
         ) : (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
             <Link
               href="#catalogo"
-              className="text-white font-bold text-sm px-6 py-3 sm:py-3.5 rounded-xl transition-all shadow-sm min-h-[44px] flex items-center justify-center"
+              className="text-white font-bold text-sm px-8 py-3.5 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center"
               style={{ backgroundColor: themeColor }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.filter = "brightness(1.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.filter = "";
-              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.filter = "brightness(1.1)")
+              }
+              onMouseLeave={(e) => (e.currentTarget.style.filter = "")}
             >
               Explorar productos
             </Link>
             <Link
               href={user ? "/dashboard#agregar-producto" : "/register"}
-              className="bg-white font-bold text-sm px-6 py-3 sm:py-3.5 rounded-xl border transition-all shadow-sm min-h-[44px] flex items-center justify-center"
+              className="bg-white font-bold text-sm px-8 py-3.5 rounded-xl border-2 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center"
               style={{
                 color: themeColor,
-                borderColor: `${themeColor}40`,
+                borderColor: themeColor,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = `${themeColor}10`;
