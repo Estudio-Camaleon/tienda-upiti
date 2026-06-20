@@ -279,6 +279,20 @@ function SellerDashboard({ user }) {
       "Producto enviado para revisión. El administrador lo revisará pronto.",
       "success",
     );
+
+    const sellerName =
+      user.user_metadata?.full_name || user.email || "Un vendedor";
+    fetch("/api/notify-new-product", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        productName: data.name,
+        sellerName,
+        productSlug: slug,
+        price: data.price,
+      }),
+    }).catch(() => {});
+
     reset();
     setImageFiles([null, null, null, null]);
     setImagePreviews([null, null, null, null]);

@@ -52,8 +52,9 @@ npm run clean        # rimraf .next (fixes stale-cache bugs)
 - Key tables: `profiles`, `products`, `reviews`, `store_config`
 - Admin role set via SQL: `UPDATE public.profiles SET role = 'admin', is_verified = true WHERE email = '...'`
 
-## Env Variables (all `NEXT_PUBLIC_*`)
+## Env Variables
 ```
+# Public (client-side)
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 NEXT_PUBLIC_SITE_URL
@@ -61,6 +62,14 @@ NEXT_PUBLIC_STORE_NAME
 NEXT_PUBLIC_WHATSAPP_NUMBER
 NEXT_PUBLIC_CURRENCY          # default "$"
 NEXT_PUBLIC_MAIN_COLOR        # default "#ed355d"
+
+# Server-side only
+SUPABASE_SERVICE_ROLE_KEY     # used by API routes
+SMTP_HOST                     # SMTP server for email notifications
+SMTP_PORT                     # default 587
+SMTP_USER                     # SMTP login
+SMTP_PASS                     # SMTP password
+SMTP_FROM                     # optional "From" address (defaults to SMTP_USER)
 ```
 `.env*` files are gitignored; `.env.local` exists locally.
 
