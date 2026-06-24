@@ -10,6 +10,7 @@ import { onlyDigits, concatParts } from "../../../lib/phone";
 import { generateBaseSlug, generateUniqueSlug } from "../../../lib/slug";
 import ProtectedImage from "../../../components/ProtectedImage";
 import { useToast } from "../../../context/ToastContext";
+import { compressImage } from "../../../lib/image";
 import { SELLER_FEATURES, SELLER_NICHES } from "../../../data/categories";
 
 const countries = [
@@ -403,7 +404,11 @@ export default function EditProfile() {
 
     try {
       if (avatarFile) {
-        newAvatarUrl = await uploadFile(avatarFile, "avatars", "avatar");
+        const compressed = await compressImage(avatarFile, {
+          maxWidth: 512,
+          quality: 0.8,
+        });
+        newAvatarUrl = await uploadFile(compressed, "avatars", "avatar");
       }
     } catch (err) {
       addToast("Error al subir imagen: " + err.message, "error");
@@ -635,12 +640,14 @@ export default function EditProfile() {
               type="text"
               {...register("whatsapp_area")}
               placeholder="381"
+              maxLength={4}
               className={`w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${errors.whatsapp_area ? "border-red-400 focus:ring-red-500/20" : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"}`}
             />
             <input
               type="text"
               {...register("whatsapp_number_local")}
               placeholder="9999999"
+              maxLength={8}
               className={`w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 col-span-2 sm:col-span-1 ${errors.whatsapp_number_local ? "border-red-400 focus:ring-red-500/20" : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"}`}
             />
           </div>
@@ -903,6 +910,7 @@ export default function EditProfile() {
                           required: true,
                         })}
                         placeholder="Contanos brevemente tu motivo..."
+                        maxLength={500}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none text-sm h-24 resize-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 mt-2"
                       />
                     </motion.div>
