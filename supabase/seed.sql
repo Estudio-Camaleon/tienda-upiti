@@ -1,12 +1,18 @@
--- Para crear la cuenta de administrador:
+-- Para crear administradores:
 --
 -- 1. Registrate como vendedor desde /register
 -- 2. Ingresá al SQL Editor de tu proyecto Supabase:
 --    https://supabase.com/dashboard/project/forfvifldysmnrpgreym/sql/new
--- 3. Ejecutá:
+-- 3. Ejecutá según el rol deseado:
 --
+--    -- Admin normal (modera productos, gestiona usuarios)
 --    UPDATE public.profiles
 --    SET role = 'admin', is_verified = true
 --    WHERE email = 'tu-email@ejemplo.com';
 --
--- 4. Iniciá sesión y accedé a /dashboard — vas a ver el panel de admin.
+--    -- Superadmin (todo lo de admin + gestionar admins)
+--    UPDATE public.profiles
+--    SET role = 'superadmin', is_verified = true
+--    WHERE email = 'tu-email@ejemplo.com';
+--
+-- 4. Iniciá sesión y accedé a /dashboard — vas a ver el panel correspondiente.
