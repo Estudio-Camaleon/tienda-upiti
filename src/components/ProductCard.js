@@ -21,18 +21,16 @@ export default function ProductCard({ product, index, currentUser }) {
   const [favLoading, setFavLoading] = useState(false);
 
   useEffect(() => {
-    if (currentUser) {
-      isFavorited(currentUser.id, product.id).then(setFavorited);
-    }
-  }, [currentUser, product.id]);
+    isFavorited(currentUser?.id, product.id).then(setFavorited);
+  }, [currentUser?.id, product.id]);
 
   async function handleToggleFav(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (!currentUser || favLoading) return;
+    if (favLoading) return;
     setFavLoading(true);
     try {
-      const result = await toggleFavorite(currentUser.id, product.id);
+      const result = await toggleFavorite(currentUser?.id, product.id);
       setFavorited(result.favorited);
     } catch {
       // ignore
@@ -69,31 +67,29 @@ export default function ProductCard({ product, index, currentUser }) {
           title={`${product.name} - ${CONFIG.storeName}`}
         />
         {/* Heart favorite button */}
-        {currentUser && (
-          <button
-            onClick={handleToggleFav}
-            disabled={favLoading}
-            className="absolute top-3 left-3 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
+        <button
+          onClick={handleToggleFav}
+          disabled={favLoading}
+          className="absolute top-3 left-3 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
+        >
+          <svg
+            className={`w-5 h-5 transition-colors ${
+              favorited
+                ? "text-red-500 fill-red-500"
+                : "text-gray-400 fill-transparent"
+            }`}
+            fill="currentColor"
+            stroke="currentColor"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
           >
-            <svg
-              className={`w-5 h-5 transition-colors ${
-                favorited
-                  ? "text-red-500 fill-red-500"
-                  : "text-gray-400 fill-transparent"
-              }`}
-              fill="currentColor"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              />
-            </svg>
-          </button>
-        )}
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+        </button>
       </Link>
 
       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">

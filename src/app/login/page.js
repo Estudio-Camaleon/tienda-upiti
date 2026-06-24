@@ -119,6 +119,7 @@ export default function Login() {
             <input
               {...register("email")}
               placeholder="Correo Electrónico"
+              maxLength={254}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500"
             />
             {errors.email && (
@@ -132,6 +133,7 @@ export default function Login() {
               type="password"
               {...register("password")}
               placeholder="Contraseña"
+              maxLength={128}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-emerald-500"
             />
             {errors.password && (

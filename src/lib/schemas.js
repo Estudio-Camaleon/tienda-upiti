@@ -1,8 +1,13 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.string().trim().min(1, "Ingresá tu email").email("Email inválido"),
-  password: z.string().min(1, "Ingresá tu contraseña"),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Ingresá tu email")
+    .email("Email inválido")
+    .max(254),
+  password: z.string().trim().min(1, "Ingresá tu contraseña").max(128),
 });
 
 export const registerSchema = z
@@ -15,26 +20,30 @@ export const registerSchema = z
       .max(254),
     password: z
       .string()
+      .trim()
       .min(8, "Mínimo 8 caracteres")
       .max(128)
       .regex(/[A-Z]/, "Al menos una mayúscula")
       .regex(/[a-z]/, "Al menos una minúscula")
       .regex(/\d/, "Al menos un número"),
-    confirmPassword: z.string().min(8, "Mínimo 8 caracteres").max(128),
+    confirmPassword: z.string().trim().min(8, "Mínimo 8 caracteres").max(128),
     first_name: z.string().trim().min(1, "Requerido").max(50),
     last_name: z.string().trim().min(1, "Requerido").max(50),
     company_name: z.string().trim().max(100).optional(),
     whatsapp_region: z
       .string()
       .trim()
+      .max(4)
       .regex(/^\d{1,4}$/, "Ej: 54"),
     whatsapp_area: z
       .string()
       .trim()
+      .max(4)
       .regex(/^\d{2,4}$/, "Ej: 381"),
     whatsapp_number_local: z
       .string()
       .trim()
+      .max(8)
       .regex(/^\d{6,8}$/, "Ej: 9999999"),
     delivery_option: z.array(z.enum(["delivery", "pickup"])).optional(),
     niche: z.string().trim().max(100).optional(),
@@ -64,10 +73,12 @@ export const productSchema = z.object({
   price: z
     .string()
     .trim()
+    .max(20)
     .regex(/^\d+(\.\d{1,2})?$/, "Precio inválido"),
   stock: z
     .string()
     .trim()
+    .max(10)
     .regex(/^\d*$/, "Ingresá solo números")
     .optional()
     .or(z.literal("")),
@@ -81,14 +92,17 @@ export const profileSchema = z.object({
   whatsapp_region: z
     .string()
     .trim()
+    .max(4)
     .regex(/^\d{1,4}$/, "Ej: 54"),
   whatsapp_area: z
     .string()
     .trim()
+    .max(4)
     .regex(/^\d{2,4}$/, "Ej: 381"),
   whatsapp_number_local: z
     .string()
     .trim()
+    .max(8)
     .regex(/^\d{6,8}$/, "Ej: 9999999"),
   delivery_option: z
     .array(z.enum(["delivery", "pickup"]), {
@@ -100,7 +114,7 @@ export const profileSchema = z.object({
   socialLinks: z
     .array(
       z.object({
-        label: z.string().min(1, "Requerido").max(30),
+        label: z.string().trim().min(1, "Requerido").max(30),
         url: z.string().trim().url("URL inválida").max(500),
       }),
     )
@@ -110,4 +124,5 @@ export const profileSchema = z.object({
 export const reviewSchema = z.object({
   rating: z.coerce.number().min(1).max(5),
   comment: z.string().trim().min(1, "Escribí tu experiencia").max(1000),
+  reviewer_name: z.string().trim().max(50).optional(),
 });

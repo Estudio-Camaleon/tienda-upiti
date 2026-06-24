@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { registerSchema } from "../../lib/schemas";
 import { onlyDigits } from "../../lib/phone";
+import { compressImage } from "../../lib/image";
 import EmailConfirmationScreen from "../../components/EmailConfirmationScreen";
 
 function sanitize(obj) {
@@ -415,8 +416,11 @@ export default function Register() {
     // Upload Avatar if exist (best-effort without session thx to anon key)
     let avatarUrl = null;
     if (data.avatar && data.avatar[0] && auth.user) {
-      const file = data.avatar[0];
-      const fileExt = file.name.split(".").pop();
+      const file = await compressImage(data.avatar[0], {
+        maxWidth: 512,
+        quality: 0.8,
+      });
+      const fileExt = "webp";
       const fileName = `${auth.user.id}/avatar.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
@@ -528,6 +532,7 @@ export default function Register() {
                     errors={errors}
                     type="email"
                     placeholder="ejemplo@correo.com"
+                    maxLength={254}
                   />
                   {canCheckEmail &&
                     currentEmailCheck?.status === "checking" && (
@@ -561,6 +566,7 @@ export default function Register() {
                   errors={errors}
                   type="password"
                   placeholder="Mínimo 8 caracteres"
+                  maxLength={128}
                 ></Field>
                 <div>
                   <Field
@@ -570,6 +576,7 @@ export default function Register() {
                     errors={errors}
                     type="password"
                     placeholder="Escribila de nuevo"
+                    maxLength={128}
                   />
                   {passwordsMismatch && (
                     <p className="text-red-500 text-xs mt-1 ml-1 font-medium">
@@ -663,6 +670,7 @@ export default function Register() {
                   name="whatsapp_area"
                   errors={errors}
                   placeholder="381"
+                  maxLength={4}
                 />
                 <Field
                   label="Número"
@@ -670,6 +678,7 @@ export default function Register() {
                   name="whatsapp_number_local"
                   errors={errors}
                   placeholder="9999999"
+                  maxLength={8}
                 />
               </div>
               <p className="text-[11px] text-gray-400 mt-1">

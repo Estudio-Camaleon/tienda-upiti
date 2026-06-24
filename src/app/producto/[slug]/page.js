@@ -152,10 +152,10 @@ export default function ProductDetail() {
   }, []);
 
   useEffect(() => {
-    if (currentUser && product) {
-      isFavorited(currentUser.id, product.id).then(setFavorited);
+    if (product) {
+      isFavorited(currentUser?.id, product.id).then(setFavorited);
     }
-  }, [currentUser, product]);
+  }, [currentUser?.id, product]);
 
   async function findProduct(param) {
     // Primero buscar por slug
@@ -213,10 +213,10 @@ export default function ProductDetail() {
   }, [slug]);
 
   async function handleToggleFav() {
-    if (!currentUser || favLoading) return;
+    if (favLoading) return;
     setFavLoading(true);
     try {
-      const result = await toggleFavorite(currentUser.id, product.id);
+      const result = await toggleFavorite(currentUser?.id, product.id);
       setFavorited(result.favorited);
     } catch {
       // ignore
@@ -401,50 +401,6 @@ export default function ProductDetail() {
                     title={`${product.name} - ${CONFIG.storeName}`}
                   />
                   {/* Heart favorite button */}
-                  {currentUser && (
-                    <button
-                      onClick={handleToggleFav}
-                      disabled={favLoading}
-                      className="absolute top-3 left-3 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
-                    >
-                      <svg
-                        className={`w-5 h-5 transition-colors ${
-                          favorited
-                            ? "text-red-500 fill-red-500"
-                            : "text-gray-400 fill-transparent"
-                        }`}
-                        fill="currentColor"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-gray-50 relative h-[300px] sm:h-[400px] lg:h-[450px] flex items-center justify-center">
-                <ProtectedImage
-                  src="https://placehold.co/600x600/eeeeee/999999?text=Sin+Imagen"
-                  alt={product.name}
-                  className="max-w-full max-h-full w-full h-full"
-                  imgClassName="object-contain p-2"
-                />
-                <ShareButtons
-                  url={
-                    typeof window !== "undefined"
-                      ? `${window.location.origin}/producto/${product.slug || product.id}`
-                      : ""
-                  }
-                  title={`${product.name} - ${CONFIG.storeName}`}
-                />
-                {currentUser && (
                   <button
                     onClick={handleToggleFav}
                     disabled={favLoading}
@@ -468,59 +424,99 @@ export default function ProductDetail() {
                       />
                     </svg>
                   </button>
-                )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-50 relative h-[300px] sm:h-[400px] lg:h-[450px] flex items-center justify-center">
+                <ProtectedImage
+                  src="https://placehold.co/600x600/eeeeee/999999?text=Sin+Imagen"
+                  alt={product.name}
+                  className="max-w-full max-h-full w-full h-full"
+                  imgClassName="object-contain p-2"
+                />
+                <ShareButtons
+                  url={
+                    typeof window !== "undefined"
+                      ? `${window.location.origin}/producto/${product.slug || product.id}`
+                      : ""
+                  }
+                  title={`${product.name} - ${CONFIG.storeName}`}
+                />
+                <button
+                  onClick={handleToggleFav}
+                  disabled={favLoading}
+                  className="absolute top-3 left-3 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
+                >
+                  <svg
+                    className={`w-5 h-5 transition-colors ${
+                      favorited
+                        ? "text-red-500 fill-red-500"
+                        : "text-gray-400 fill-transparent"
+                    }`}
+                    fill="currentColor"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    />
+                  </svg>
+                </button>
               </div>
             )}
+          </div>
 
-            <div className="p-6 sm:p-8 lg:hidden">
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span
-                  className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full text-white"
-                  style={{ backgroundColor: themeColor }}
-                >
-                  {product.category}
+          <div className="p-6 sm:p-8 lg:hidden">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span
+                className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full text-white"
+                style={{ backgroundColor: themeColor }}
+              >
+                {product.category}
+              </span>
+              {product.brand && (
+                <span className="max-w-[200px] truncate text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+                  {product.brand}
                 </span>
-                {product.brand && (
-                  <span className="max-w-[200px] truncate text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-                    {product.brand}
-                  </span>
-                )}
-              </div>
+              )}
+            </div>
 
-              <h1 className="break-words text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 leading-tight mb-4">
-                {product.name}
-              </h1>
+            <h1 className="break-words text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 leading-tight mb-4">
+              {product.name}
+            </h1>
 
-              <p className="break-words text-gray-600 leading-relaxed mb-6">
-                {product.description}
-              </p>
+            <p className="break-words text-gray-600 leading-relaxed mb-6">
+              {product.description}
+            </p>
 
-              <div className="flex items-center justify-between border-t border-gray-100 pt-6">
-                <div>
-                  <span className="text-sm font-bold text-gray-400 uppercase">
-                    Precio final
-                  </span>
+            <div className="flex items-center justify-between border-t border-gray-100 pt-6">
+              <div>
+                <span className="text-sm font-bold text-gray-400 uppercase">
+                  Precio final
+                </span>
+                <p
+                  className="text-3xl sm:text-4xl font-black"
+                  style={{ color: themeColor }}
+                >
+                  {CONFIG.currency}
+                  {Number(product.price).toLocaleString("es-AR")}
+                </p>
+                {product.stock != null && (
                   <p
-                    className="text-3xl sm:text-4xl font-black"
-                    style={{ color: themeColor }}
+                    className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      Number(product.stock) > 0
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-red-50 text-red-600"
+                    }`}
                   >
-                    {CONFIG.currency}
-                    {Number(product.price).toLocaleString("es-AR")}
+                    {Number(product.stock) > 0
+                      ? `${product.stock} disponibles`
+                      : "Sin stock"}
                   </p>
-                  {product.stock != null && (
-                    <p
-                      className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                        Number(product.stock) > 0
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-red-50 text-red-600"
-                      }`}
-                    >
-                      {Number(product.stock) > 0
-                        ? `${product.stock} disponibles`
-                        : "Sin stock"}
-                    </p>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -646,7 +642,12 @@ export default function ProductDetail() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {relatedProducts.map((p, i) => (
-              <ProductCard key={p.id} product={p} index={i} />
+              <ProductCard
+                key={p.id}
+                product={p}
+                index={i}
+                currentUser={currentUser}
+              />
             ))}
           </div>
         </section>

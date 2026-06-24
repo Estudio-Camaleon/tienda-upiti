@@ -269,8 +269,8 @@ export default function SellerProfile() {
         // Load follower count + following status
         const count = await getFollowerCount(profileData.id);
         setFollowerCount(count);
-        if (session?.user && session.user.id !== profileData.id) {
-          const isF = await isFollowing(session.user.id, profileData.id);
+        if (profileData.id) {
+          const isF = await isFollowing(session?.user?.id, profileData.id);
           setFollowing(isF);
         }
       } catch (err) {
@@ -316,31 +316,69 @@ export default function SellerProfile() {
   }, [loading, seller, themeColor]);
 
   const onSubmitReview = async (data) => {
-    if (!currentUser)
-      return addToast("Debes iniciar sesión para dejar una reseña.", "warning");
     setSubmitting(true);
 
-    const payload = {
-      reviewer_id: currentUser.id,
-      seller_id: seller.id,
-      rating: Number(data.rating),
-      comment: data.comment.trim(),
-    };
+    if (currentUser) {
+      const payload = {
+        reviewer_id: currentUser.id,
+        seller_id: seller.id,
+        rating: Number(data.rating),
+        comment: data.comment.trim(),
+      };
 
-    const { data: insertedReview, error } = await supabase
-      .from("reviews")
-      .insert([payload])
-      .select(
-        `*, reviewer:profiles!reviewer_id(first_name, last_name, avatar_url)`,
-      )
-      .single();
+      const { data: insertedReview, error } = await supabase
+        .from("reviews")
+        .insert([payload])
+        .select(
+          `*, reviewer:profiles!reviewer_id(first_name, last_name, avatar_url)`,
+        )
+        .single();
 
-    if (error) {
-      addToast("Error al enviar reseña: " + error.message, "error");
+      if (error) {
+        addToast("Error al enviar reseña: " + error.message, "error");
+      } else {
+        addToast("Reseña publicada con éxito.", "success");
+        setReviews((prev) => [insertedReview || payload, ...prev]);
+        reset({ rating: 5, comment: "" });
+      }
     } else {
-      addToast("Reseña publicada con éxito.", "success");
-      setReviews((prev) => [insertedReview || payload, ...prev]);
-      reset({ rating: 5, comment: "" });
+      const name = data.reviewer_name?.trim();
+      if (!name) {
+        addToast("Ingresá tu nombre para dejar una reseña.", "warning");
+        setSubmitting(false);
+        return;
+      }
+      try {
+        const res = await fetch("/api/reviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rating: Number(data.rating),
+            comment: data.comment.trim(),
+            seller_id: seller.id,
+            reviewer_name: data.reviewer_name?.trim() || "Anónimo",
+          }),
+        });
+        const result = await res.json();
+        if (!res.ok) {
+          addToast("Error al enviar reseña: " + result.error, "error");
+        } else {
+          addToast("Reseña publicada con éxito.", "success");
+          setReviews((prev) => [
+            {
+              rating: Number(data.rating),
+              comment: data.comment.trim(),
+              reviewer_name: data.reviewer_name?.trim() || "Anónimo",
+              created_at: new Date().toISOString(),
+              reviewer: null,
+            },
+            ...prev,
+          ]);
+          reset({ rating: 5, comment: "", reviewer_name: "" });
+        }
+      } catch {
+        addToast("Error al enviar reseña. Intentá de nuevo.", "error");
+      }
     }
     setSubmitting(false);
   };
@@ -350,10 +388,10 @@ export default function SellerProfile() {
   };
 
   async function handleToggleFollow() {
-    if (!currentUser || followLoading) return;
+    if (followLoading) return;
     setFollowLoading(true);
     try {
-      const result = await toggleFollow(currentUser.id, seller.id);
+      const result = await toggleFollow(currentUser?.id, seller.id);
       setFollowing(result.following);
       setFollowerCount((c) => c + (result.following ? 1 : -1));
     } catch {
@@ -629,7 +667,7 @@ export default function SellerProfile() {
       {/* Quick actions — visible right below profile */}
       <div className="bg-white rounded-3xl border border-gray-100 p-3 sm:p-5 mb-8">
         <div className="flex flex-wrap items-center gap-2">
-          {currentUser && currentUser.id !== seller.id && (
+          {currentUser?.id !== seller.id && (
             <button
               onClick={handleToggleFollow}
               disabled={followLoading}
@@ -848,12 +886,22 @@ export default function SellerProfile() {
               </div>
             </div>
 
-            {currentUser && currentUser.id !== seller?.id && (
+            {currentUser?.id !== seller?.id && (
               <form
                 onSubmit={handleSubmit(onSubmitReview)}
                 className="mb-5 pb-5 border-b border-gray-100"
               >
                 <h4 className="font-bold text-sm mb-3">Dejar una reseña</h4>
+                {!currentUser && (
+                  <div className="mb-3">
+                    <input
+                      {...register("reviewer_name")}
+                      placeholder="Tu nombre"
+                      maxLength={50}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none text-sm"
+                    />
+                  </div>
+                )}
                 <input type="hidden" {...register("rating")} />
                 <div className="mb-3">
                   <RatingInput
@@ -905,22 +953,6 @@ export default function SellerProfile() {
                   {submitting ? "Enviando..." : "Publicar reseña"}
                 </motion.button>
               </form>
-            )}
-
-            {!currentUser && (
-              <div className="mb-5 p-4 rounded-2xl bg-gray-50 border border-gray-100 text-center">
-                <p className="text-sm font-bold text-gray-900">
-                  Iniciá sesión para dejar una reseña
-                </p>
-                <button
-                  type="button"
-                  onClick={() => router.push("/login")}
-                  className="mt-3 px-4 py-2 rounded-xl text-white text-sm font-bold transition-all"
-                  style={{ backgroundColor: themeColor }}
-                >
-                  Ingresar
-                </button>
-              </div>
             )}
 
             {currentUser?.id === seller?.id && (
