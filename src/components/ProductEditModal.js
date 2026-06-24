@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import ProtectedImage from "./ProtectedImage";
 import { productSchema } from "../lib/schemas";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../context/ToastContext";
+import { compressImage } from "../lib/image";
 import { CATEGORIES, getCategoryFields } from "../data/categories";
 
 const SLOT_LABELS = [
@@ -37,6 +38,7 @@ export default function ProductEditModal({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(productSchema),
@@ -50,8 +52,11 @@ export default function ProductEditModal({
     },
   });
 
-  const watchedCategory = product?.category || "";
+  const watchedCategory =
+    useWatch({ control, name: "category" }) || product?.category || "";
   const categoryFields = getCategoryFields(watchedCategory);
+
+  const { onChange: catOnChange, ...catRest } = register("category");
 
   const handleFileSelect = (index, file) => {
     if (!file) return;
@@ -85,8 +90,11 @@ export default function ProductEditModal({
 
       if (imageFiles[i]) {
         // This is a new file to upload
-        const file = imageFiles[i];
-        const fileExt = file.name.split(".").pop();
+        const file = await compressImage(imageFiles[i], {
+          maxWidth: 1200,
+          quality: 0.8,
+        });
+        const fileExt = "webp";
         const fileName = `${product.seller_id}/products/${crypto.randomUUID()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from("products")
@@ -116,7 +124,7 @@ export default function ProductEditModal({
         stock:
           data.stock === "" || data.stock == null ? null : Number(data.stock),
         description: data.description || null,
-        image: finalImages[0] || product.image || null,
+        image: finalImages[0] || null,
         images: finalImages,
         specifications: specs,
       })
@@ -225,7 +233,11 @@ export default function ProductEditModal({
                     Categoría
                   </label>
                   <select
-                    {...register("category")}
+                    onChange={(e) => {
+                      catOnChange(e);
+                      setSpecs({});
+                    }}
+                    {...catRest}
                     className={`w-full px-4 py-3 rounded-xl border outline-none text-sm bg-white transition-shadow focus:ring-2 ${
                       errors.category
                         ? "border-red-400 focus:ring-red-500/20"
@@ -255,10 +267,11 @@ export default function ProductEditModal({
                       $
                     </span>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
                       {...register("price")}
                       placeholder="0.00"
+                      maxLength={20}
                       className={`w-full pl-8 pr-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${
                         errors.price
                           ? "border-red-400 focus:ring-red-500/20"
@@ -281,11 +294,11 @@ export default function ProductEditModal({
                     </span>
                   </label>
                   <input
-                    type="number"
-                    min="0"
-                    step="1"
+                    type="text"
+                    inputMode="numeric"
                     {...register("stock")}
                     placeholder="Ej: 10"
+                    maxLength={10}
                     className={`w-full px-4 py-3 rounded-xl border outline-none text-sm transition-shadow focus:ring-2 ${
                       errors.stock
                         ? "border-red-400 focus:border-red-500 focus:ring-red-500/20"
@@ -293,7 +306,8 @@ export default function ProductEditModal({
                     }`}
                   />
                   <p className="text-[11px] text-gray-400 mt-1">
-                    Para restablecer stock, editá este número y guardá.
+                    Si lo dejás vacío, no se mostrará stock. Si llega a 0,
+                    aparecerá como sin stock.
                   </p>
                   {errors.stock && (
                     <p className="text-red-500 text-xs mt-1 ml-1 font-medium">

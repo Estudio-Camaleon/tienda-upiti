@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useStoreConfig } from "../context/StoreConfigContext";
 import { supabase } from "../lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,9 +9,11 @@ import ProtectedImage from "./ProtectedImage";
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const { logo_image } = useStoreConfig();
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const isDashboard = pathname?.startsWith("/dashboard");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -91,10 +93,10 @@ export default function Header() {
                   Cerrar sesión
                 </button>
                 <Link
-                  href="/dashboard"
+                  href={isDashboard ? "/" : "/dashboard"}
                   className="bg-gray-900 text-white px-4 py-2 rounded-full text-xs font-bold shadow-sm hover:bg-gray-800 transition-colors"
                 >
-                  Mi Panel
+                  {isDashboard ? "← Tienda" : "Mi Panel"}
                 </Link>
               </>
             ) : (
@@ -109,7 +111,7 @@ export default function Header() {
                   href="/register"
                   className="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full text-xs font-bold hover:bg-emerald-200 transition-colors"
                 >
-                  Vender
+                  Registrarme
                 </Link>
               </>
             )}
@@ -129,11 +131,11 @@ export default function Header() {
               {user ? (
                 <>
                   <Link
-                    href="/dashboard"
+                    href={isDashboard ? "/" : "/dashboard"}
                     onClick={() => setMenuOpen(false)}
                     className="block w-full text-left px-4 py-4 rounded-xl font-bold text-sm text-white bg-gray-900 hover:bg-gray-800 transition-colors min-h-[48px] flex items-center"
                   >
-                    Mi Panel
+                    {isDashboard ? "← Volver a la tienda" : "Mi Panel"}
                   </Link>
                   <button
                     onClick={handleLogout}
